@@ -4,9 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.home import HomePage
-from restmail.restmail import RestmailInbox
-from mocks.mock_user import MockUser
+from pages.onedone_home import HomePage
+from utils.restmail import RestmailInbox
+from utils.mock_user import MockUser
 from unittestzero import Assert
 
 import pytest
@@ -27,7 +27,7 @@ class TestNewAccount:
         email = inbox.find_by_index(0)
 
         # Load the BrowserID link from the email in the browser
-        from browserid.pages.complete_registration import CompleteRegistration
+        from pages.dialog.complete_registration import CompleteRegistration
         complete_registration = CompleteRegistration(mozwebqa.selenium, mozwebqa.timeout, email.verify_user_link)
 
         Assert.equal(home_pg.logged_in_user_email, user['email'])
