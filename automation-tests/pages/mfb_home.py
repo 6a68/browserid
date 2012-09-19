@@ -24,7 +24,7 @@ class HomePage(Page):
     def sign_in(self, user='default'):
         credentials = self.testsetup.credentials[user]
         self.click_sign_in()
-        from browserid import BrowserID
+        from dialog.browser_id import BrowserID
         browserid = BrowserID(self.selenium, self.timeout)
         browserid.sign_in(credentials['email'], credentials['password'])
 

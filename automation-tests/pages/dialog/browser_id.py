@@ -23,7 +23,7 @@ class BrowserID(object):
 
     def sign_in(self, email, password):
         """Signs in using the specified email address and password."""
-        from pages.sign_in import SignIn
+        from sign_in import SignIn
         sign_in = SignIn(self.selenium, timeout=self.timeout, expect='new')
         sign_in.sign_in(email, password)
 
