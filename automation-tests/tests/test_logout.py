@@ -4,8 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.onedone import OnedoneHomePage
 from pages.myfavoritebeer import MfbHomePage
+from pages.onedone import OnedoneHomePage
 from unittestzero import Assert
 
 import pytest
@@ -13,19 +13,23 @@ import pytest
 
 class TestLogout:
 
-    @pytest.mark.nondestructive
-    def test_user_can_logout_observer_api(self, mozwebqa):
-        home_pg = OnedoneHomePage(mozwebqa)
-        home_pg.go_to_home_page()
-        home_pg.sign_in()
-
-        home_pg.logout()
-        Assert.false(home_pg.is_logged_in)
+    def _sign_in_and_out(self, pom):
+        pom.go_to_home_page()
+        pom.sign_in()
+        pom.logout()
 
     @pytest.mark.nondestructive
-    def test_user_can_logout_get_api(self, mozwebqa):
-        home_pg = MfbHomePage(mozwebqa)
-        home_pg.go_to_home_page()
-        home_pg.sign_in()
-        home_pg.logout()
-        Assert.false(home_pg.is_logged_in)
+    @pytest.mark.onedone
+    def test_logout_observer_api(self, mozwebqa):
+        mozwebqa.base_url = 'http://beta.123done.org'
+        onedone = OnedoneHomePage(mozwebqa)
+        self._sign_in_and_out(onedone)
+        Assert.false(onedone.is_logged_in)
+
+    @pytest.mark.nondestructive
+    @pytest.mark.mfb
+    def test_logout_get_api(self, mozwebqa):
+        mozwebqa.base_url = 'http://beta.myfavoritebeer.org'
+        mfb = MfbHomePage(mozwebqa)
+        self._sign_in_and_out(mfb)
+        Assert.false(mfb.is_logged_in)

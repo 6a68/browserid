@@ -4,7 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.myfavoritebeer import HomePage
+from pages.myfavoritebeer import MfbHomePage
+from pages.onedone import OnedoneHomePage
 from unittestzero import Assert
 
 import pytest
@@ -12,9 +13,18 @@ import pytest
 
 class TestSignIn:
 
+    def _sign_in(pom):
+        pom.go_to_home_page()
+        pom.sign_in()
+
     @pytest.mark.nondestructive
-    def test_that_user_can_sign_in(self, mozwebqa):
-        home_pg = HomePage(mozwebqa)
-        home_pg.go_to_home_page()
-        home_pg.sign_in()
-        Assert.true(home_pg.is_logged_in)
+    def test_sign_in_observer_api(self, mozwebqa):
+        onedone = OnedoneHomePage(mozwebqa)
+        self._sign_in(onedone)
+        Assert.true(onedone.is_logged_in)
+
+    @pytest.mark.nondestructive
+    def test_sign_in_get_api(self, mozwebqa):
+        mfb = MfbHomePage(mozwebqa)
+        self._sign_in(mfb)
+        Assert.true(mfb.is_logged_in)
