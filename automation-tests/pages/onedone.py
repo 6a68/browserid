@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from page import Page
 
 
-class HomePage(Page):
+class OnedoneHomePage(Page):
 
     _page_title = '123done - your tasks, simplified'
 

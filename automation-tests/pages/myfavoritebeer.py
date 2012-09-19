@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from page import Page
 
 
-class HomePage(Page):
+class MfbHomePage(Page):
 
     _page_title = 'My Favorite Beer, a BrowserID example'
 
