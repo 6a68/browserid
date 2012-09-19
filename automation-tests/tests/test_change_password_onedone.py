@@ -5,8 +5,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from pages.onedone_home import HomePage
-from utils.restmail_onedone import RestmailInbox
-from utils.mock_user_onedone import MockUser
+from utils.restmail import RestmailInbox
+from utils.mock_user import MockUser
 from unittestzero import Assert
 
 import pytest
