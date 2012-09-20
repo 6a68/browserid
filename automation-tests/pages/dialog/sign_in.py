@@ -31,6 +31,7 @@ class SignIn(Base):
     _your_computer_content_locator = (By.ID, 'your_computer_content')
     _this_is_my_computer_locator = (By.ID, 'this_is_my_computer')
     _this_is_not_my_computer_locator = (By.ID, 'this_is_not_my_computer')
+    _sign_into_primary_locator = (By.ID, 'verifyWithPrimary')
 
     def __init__(self, selenium, timeout, expect='new'):
         Base.__init__(self, selenium, timeout)
@@ -222,6 +223,9 @@ class SignIn(Base):
         """Clicks 'I trust this computer' and signs in for a public computer"""
         self.selenium.find_element(*self._this_is_not_my_computer_locator).click()
         self.switch_to_main_window()
+
+    def click_sign_into_primary(self):
+        self.selenium.find_element(*self._sign_into_primary_locator).click()
 
     def sign_in(self, email, password):
         """Signs in using the specified email address and password."""

@@ -20,7 +20,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 class TestNewAccount:
 
-    def disabled_test_create_user_onedone(self, mozwebqa):
+    def disabled_test_create_secondary_user_onedone(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.123done.org'
         user = MockUser()
         home_pg = OnedoneHomePage(mozwebqa)
@@ -38,7 +38,7 @@ class TestNewAccount:
 
         Assert.equal(home_pg.logged_in_user_email, user['email'])
 
-    def test_create_user_mfb(self, mozwebqa):
+    def disabled_test_create_secondary_user_mfb(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.myfavoritebeer.org'
         user = MockUser()
         mfb = MfbHomePage(mozwebqa)
@@ -67,7 +67,7 @@ class TestNewAccount:
         account_manager = AccountManager(mozwebqa.selenium, mozwebqa.timeout)
         Assert.contains(user['email'], account_manager.emails)
 
-    def disabled_test_create_user_mfb_two_browsers(self, mozwebqa):
+    def disabled_test_create_secondary_user_mfb_two_browsers(self, mozwebqa):
         from selenium import webdriver
         ff = webdriver.Firefox()
 
@@ -100,8 +100,46 @@ class TestNewAccount:
         import time
         time.sleep(8)
         # I think this should now worK:
+        # but do we want to check that we're logged into mfb? or not?
         account_manager = AccountManager(ff, mozwebqa.timeout)
         Assert.contains(user['email'], account_manager.emails)
         ff.close()
 
-        # but do we want to check that we're logged into mfb? or not?
+    def test_create_primary_user_onedone(self, mozwebqa):
+        mozwebqa.base_url = 'http://dev.123done.org'
+        # borrowed from MockUser
+        import time
+        user = {}
+        user['email'] = 'testuser_%s@eyedee.me' % repr(time.time())
+        user['password'] = 'Password12345'
+        home_pg = OnedoneHomePage(mozwebqa)
+
+        home_pg.go_to_home_page()
+        bid_login = home_pg.click_sign_in()
+        #bid_login.sign_in_new_user(user['email'], user['password'])
+        bid_login.email = user['email']
+        mozwebqa.selenium.find_element(By.CSS_SELECTOR, 'button.start').click()
+        # should see the dialog with a verifyWithPrimary button
+        # is this the wrong selenium? python is fun.
+        def button_is_ready(self, selenium, locator):
+            btn = selenium.find_element_by_id(locator)
+            return btn && btn.get_attribute('disabled') == null
+
+        WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
+            button_is_ready(mozwebqa.selenium, 'verifyWithPrimary'))
+            # wait until it does not have a disabled attr
+            lambda s: s.find_element(
+            lambda s: 'disabled' != s.find_element(By.ID, 'verifyWithPrimary').get_attribute('disabled'))
+
+        # I think the implicit timeout should work here
+        mozwebqa.selenium.find_element(By.ID, 'verifyWithPrimary').click()
+
+        # now we should see eyedee.me
+        WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
+            lambda s: s.title == 'EyeDee.Me - Easy to use email aliases')
+        mozwebqa.selenium.find_element(By.ID, 'new_password').send_keys(user['password'])
+        mozwebqa.selenium.find_element(By.ID, 'create_account').click()
+
+        # the dialog says stuff, skipping for the moment
+        home_pg.wait_for_user_login()
+        Assert.equal(home_pg.logged_in_user_email, user['email'])
