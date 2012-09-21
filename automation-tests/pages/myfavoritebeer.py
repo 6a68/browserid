@@ -21,12 +21,13 @@ class MfbHomePage(Page):
         self.selenium.get(self.base_url + '/')
         self.is_the_current_page
 
-    def sign_in(self, user='default'):
+    def sign_in(self, user='default', expect='new'):
         credentials = self.testsetup.credentials[user]
         self.click_sign_in()
-        from dialog.browser_id import BrowserID
-        browserid = BrowserID(self.selenium, self.timeout)
-        browserid.sign_in(credentials['email'], credentials['password'])
+        from pages.dialog.sign_in import SignIn
+        SignIn(self.selenium, self.timeout, expect=expect)
+        WebDriverWait(self.selenium, self.timeout).until(
+            lambda s: self.is_logged_in)
 
     def logout(self):
         self.click_logout()
