@@ -4,10 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.onedone import OnedoneHomePage
-from pages.myfavoritebeer import MfbHomePage
-from pages.dialog.account_manager import AccountManager
-from pages.dialog.complete_registration import CompleteRegistration
+from rps.onedone import OnedoneHomePage
+from rps.myfavoritebeer import MfbHomePage
+from pages.account_manager import AccountManager
+from pages.complete_registration import CompleteRegistration
 from pages.dialog import SignIn
 from utils.restmail import RestmailInbox
 from utils.mock_user import MockUser

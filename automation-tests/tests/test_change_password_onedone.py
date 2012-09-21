@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.onedone import OnedoneHomePage
+from pages.rps.onedone import OnedoneHomePage
 from utils.restmail import RestmailInbox
 from utils.mock_user import MockUser
 from unittestzero import Assert
@@ -37,11 +37,11 @@ class TestChangePassword:
         email = inbox.find_by_index(0)
 
         # Load the BrowserID link from the email in the browser
-        from pages.dialog.complete_registration import CompleteRegistration
+        from pages.complete_registration import CompleteRegistration
         CompleteRegistration(mozwebqa.selenium, mozwebqa.timeout, email.verify_user_link)
 
         mozwebqa.selenium.get(self._persona_server_url(mozwebqa))
-        from pages.dialog.account_manager import AccountManager
+        from pages.account_manager import AccountManager
         account_manager = AccountManager(mozwebqa.selenium, mozwebqa.timeout)
 
         Assert.contains(user['email'], account_manager.emails)

@@ -4,8 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from pages.myfavoritebeer import MfbHomePage
-from pages.onedone import OnedoneHomePage
+from pages.rps.myfavoritebeer import MfbHomePage
+from pages.rps.onedone import OnedoneHomePage
 from unittestzero import Assert
 
 import pytest

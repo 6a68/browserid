@@ -7,7 +7,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-from page import Page
+from ..page import Page
 
 
 class OnedoneHomePage(Page):
