@@ -118,25 +118,14 @@ class TestNewAccount:
 
         home_pg.go_to_home_page()
         bid_login = home_pg.click_sign_in()
-        #bid_login.sign_in_new_user(user['email'], user['password'])
-        bid_login.email = user['email']
-        mozwebqa.selenium.find_element(By.CSS_SELECTOR, 'button.start').click()
-        # should see the dialog with a verifyWithPrimary button
-        # is this the wrong selenium? python is fun.
-        def button_is_ready(selenium, locator):
-            btn = selenium.find_element_by_id(locator)
-            return btn.is_displayed()
-
-        WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
-            lambda s: s.find_element_by_id('verifyWithPrimary').is_displayed())
-            # wait until it does not have a disabled attr
-
-        # I dunno why it's not clicking properly.
-        time.sleep(1)
-
-        # I think the implicit timeout should work here
-        mozwebqa.selenium.find_element(By.ID, 'verifyWithPrimary').click()
-
+        bid_login.sign_in_primary(user['email'], user['password'])
+        #bid_login.email = user['email']
+        #mozwebqa.selenium.find_element(By.CSS_SELECTOR, 'button.start').click()
+        #WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
+        #    lambda s: s.find_element_by_id('verifyWithPrimary').is_displayed())
+        ## I dunno why it's not clicking properly.
+        #time.sleep(1)
+        #mozwebqa.selenium.find_element(By.ID, 'verifyWithPrimary').click()
         # now we should see eyedee.me
         WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
             lambda s: s.title == 'EyeDee.Me - Easy to use email aliases')

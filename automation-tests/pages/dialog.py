@@ -149,16 +149,17 @@ class SignIn(Base):
     def click_next(self, expect='password'):
         """Clicks the 'next' button."""
         self.selenium.find_element(*self._next_locator).click()
+        el = None
         if expect == 'password':
-            WebDriverWait(self.selenium, self.timeout).until(
-                lambda s: s.find_element(
-                    *self._password_locator).is_displayed())
+            el = self._password_locator
         elif expect == 'verify':
-            WebDriverWait(self.selenium, self.timeout).until(
-                lambda s: s.find_element(
-                    *self._verify_email_locator).is_displayed())
+            el = self._verify_email_locator
+        elif expect == 'primary':
+            el = self._sign_into_primary_locator
         else:
             raise Exception('Unknown expect value: %s' % expect)
+        WebDriverWait(self.selenium, self.timeout).until(
+            lambda s: s.find_element(*el).is_displayed())
 
     def click_sign_in(self):
         """Clicks the 'sign in' button."""
@@ -247,3 +248,12 @@ class SignIn(Base):
     def sign_in_returning_user(self):
         """Signs in with the stored user."""
         self.click_sign_in_returning_user()
+
+    def sign_in_primary(self, email, password):
+        self.email = email
+        self.click_next(expect='primary')
+        # todo, why is this sleep necessary
+        import time
+        time.sleep(1)
+        self.click_sign_into_primary()
+        # eyedeeme stuff follows
