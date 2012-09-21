@@ -107,6 +107,8 @@ class TestNewAccount:
 
     def test_create_primary_user_onedone(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.123done.org'
+        parent_window = mozwebqa.selenium.current_window_handle
+
         # borrowed from MockUser
         import time
         user = {}
@@ -121,13 +123,16 @@ class TestNewAccount:
         mozwebqa.selenium.find_element(By.CSS_SELECTOR, 'button.start').click()
         # should see the dialog with a verifyWithPrimary button
         # is this the wrong selenium? python is fun.
-        def button_is_ready(self, selenium, locator):
+        def button_is_ready(selenium, locator):
             btn = selenium.find_element_by_id(locator)
-            return btn != null and btn.get_attribute('disabled') == null
+            return btn.is_displayed()
 
         WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
-            button_is_ready(mozwebqa.selenium, 'verifyWithPrimary'))
+            lambda s: s.find_element_by_id('verifyWithPrimary').is_displayed())
             # wait until it does not have a disabled attr
+
+        # I dunno why it's not clicking properly.
+        time.sleep(1)
 
         # I think the implicit timeout should work here
         mozwebqa.selenium.find_element(By.ID, 'verifyWithPrimary').click()
@@ -139,5 +144,6 @@ class TestNewAccount:
         mozwebqa.selenium.find_element(By.ID, 'create_account').click()
 
         # the dialog says stuff, skipping for the moment
-        home_pg.wait_for_user_login()
+        mozwebqa.selenium.switch_to_window(parent_window)
+
         Assert.equal(home_pg.logged_in_user_email, user['email'])
