@@ -4,18 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import time
+
 
 class MockUser(dict):
 
-    def __init__(self, **kwargs):
-        # set your default values
-        import time
-
-        self['email'] = 'testuser_%s@restmail.net' % repr(time.time())
+    def __init__(self, domain='restmail.net'):
+        self['email'] = 'testuser_%s@%s' % (repr(time.time()), domain)
         self['password'] = 'Password12345'
-
-        # update with any keyword arguments passed
-        self.update(**kwargs)
 
     # allow getting items as if they were attributes
     def __getattr__(self, attr):

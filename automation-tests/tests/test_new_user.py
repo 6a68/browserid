@@ -110,11 +110,7 @@ class TestNewAccount:
         mozwebqa.base_url = 'http://dev.123done.org'
         parent_window = mozwebqa.selenium.current_window_handle
 
-        # borrowed from MockUser
-        import time
-        user = {}
-        user['email'] = 'testuser_%s@eyedee.me' % repr(time.time())
-        user['password'] = 'Password12345'
+        user = MockUser('eyedee.me')
         home_pg = OnedoneHomePage(mozwebqa)
 
         home_pg.go_to_home_page()
