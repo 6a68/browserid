@@ -8,7 +8,7 @@ from pages.onedone import OnedoneHomePage
 from pages.myfavoritebeer import MfbHomePage
 from pages.dialog.account_manager import AccountManager
 from pages.dialog.complete_registration import CompleteRegistration
-from pages.dialog.sign_in import SignIn
+from pages.dialog import SignIn
 from utils.restmail import RestmailInbox
 from utils.mock_user import MockUser
 from unittestzero import Assert

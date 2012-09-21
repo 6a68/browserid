@@ -49,7 +49,7 @@ class OnedoneHomePage(Page):
 
         """
         self.selenium.find_element(*self._sign_in_locator).click()
-        from pages.dialog.sign_in import SignIn
+        from pages.dialog import SignIn
         return SignIn(self.selenium, self.timeout, expect=expect)
 
     def click_logout(self):

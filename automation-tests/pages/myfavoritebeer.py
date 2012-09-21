@@ -24,7 +24,7 @@ class MfbHomePage(Page):
     def sign_in(self, user='default', expect='new'):
         credentials = self.testsetup.credentials[user]
         self.click_sign_in()
-        from pages.dialog.sign_in import SignIn
+        from pages.dialog import SignIn
         SignIn(self.selenium, self.timeout, expect=expect)
         WebDriverWait(self.selenium, self.timeout).until(
             lambda s: self.is_logged_in)
