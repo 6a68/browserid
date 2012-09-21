@@ -15,13 +15,14 @@ from utils.mock_user import MockUser
 from unittestzero import Assert
 
 import pytest
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
 
 class TestNewAccount:
 
-    def disabled_test_create_secondary_user_onedone(self, mozwebqa):
+    def test_create_secondary_user_onedone(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.123done.org'
         user = MockUser()
         home_pg = OnedoneHomePage(mozwebqa)
@@ -39,7 +40,7 @@ class TestNewAccount:
 
         Assert.equal(home_pg.logged_in_user_email, user['email'])
 
-    def disabled_test_create_secondary_user_mfb(self, mozwebqa):
+    def test_create_secondary_user_mfb(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.myfavoritebeer.org'
         user = MockUser()
         mfb = MfbHomePage(mozwebqa)
@@ -53,25 +54,14 @@ class TestNewAccount:
         user = MockUser()
         sign_in.sign_in_new_user(user['email'], user['password'])
 
-        # Open restmail inbox, find the email
         inbox = RestmailInbox(user['email'])
         email = inbox.find_by_index(0)
 
-        # Load the BrowserID link from the email in the browser
-        complete_registration = CompleteRegistration(mozwebqa.selenium, mozwebqa.timeout, email.verify_user_link, 'redirect')
+        # todo: is seeing the 'thank you' screen enough? do we need to go back to mfb?
+        complete_registration = CompleteRegistration(mozwebqa.selenium, mozwebqa.timeout, email.verify_user_link, 'success')
 
-        # the old 'get' api, unlike 123done and the 'observer' api,
-        # doesn't redirect to the third-party site automatically.
-        # you have to confirm the account was created inside 
-        # the account manager page--unless you want to go back to
-        # mfb and verify it works there. meh.
-        account_manager = AccountManager(mozwebqa.selenium, mozwebqa.timeout)
-        Assert.contains(user['email'], account_manager.emails)
 
-    def disabled_test_create_secondary_user_mfb_two_browsers(self, mozwebqa):
-        from selenium import webdriver
-        ff = webdriver.Firefox()
-
+    def test_create_secondary_user_mfb_two_browsers(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.myfavoritebeer.org'
         user = MockUser()
         mfb = MfbHomePage(mozwebqa)
@@ -90,21 +80,18 @@ class TestNewAccount:
 
         # Load the BrowserID link from the email in another browser
         # todo: move this stuff into CompleteRegistration, or a subclass that works in second browser
-        ff.get(email.verify_user_link)
-        WebDriverWait(ff, mozwebqa.timeout).until(
+        second_browser = webdriver.Firefox()
+        second_browser.get(email.verify_user_link)
+        WebDriverWait(second_browser, mozwebqa.timeout).until(
             lambda s: s.find_element(By.ID, 'password').is_displayed())
-        password_input = ff.find_element(By.ID, 'password')
+        password_input = second_browser.find_element(By.ID, 'password')
         password_input.send_keys(user['password'])
-        submit_btn = ff.find_element(By.TAG_NAME, 'button')
+        submit_btn = second_browser.find_element(By.TAG_NAME, 'button')
         submit_btn.click()
-        # wait for redirect. dunno how to do this. just sleep for the moment.
-        import time
-        time.sleep(8)
-        # I think this should now worK:
-        # but do we want to check that we're logged into mfb? or not?
-        account_manager = AccountManager(ff, mozwebqa.timeout)
-        Assert.contains(user['email'], account_manager.emails)
-        ff.close()
+        WebDriverWait(second_browser, mozwebqa.timeout).until(
+            lambda s: s.find_element_by_id('congrats').is_displayed())
+        second_browser.close()
+
 
     def test_create_primary_user_onedone(self, mozwebqa):
         mozwebqa.base_url = 'http://dev.123done.org'
