@@ -119,35 +119,12 @@ def main():
                 
     # 6. run the tests
     for browser in browsers:
-        no_proxy_json = '--capabilities={\"avoid-proxy\":true}'
-        if options.run_all:
-            subprocess.call(env_py + ' -m py.test --destructive' +
-                ' --credentials=credentials.yaml ' + browser[0] + 
-                ' --webqatimeout=90 -m travis ' + no_proxy_json +
-                ' --webqareport=results/browserid/' + browser[1] + '.html' +
-                ' --baseurl=http://%s.123done.org -q browserid' % host, shell=True)
-            subprocess.call(env_py + ' -m py.test --destructive' +
-                ' --credentials=credentials.yaml ' + browser[0] + 
-                ' --webqatimeout=90 ' + no_proxy_json +
-                ' --webqareport=results/123done/' + browser[1] + '.html' +
-                ' --baseurl=http://%s.123done.org -q 123done' % host, shell=True)
-            subprocess.call(env_py + ' -m py.test --destructive' +
-                ' --credentials=credentials.yaml ' + browser[0] + 
-                ' --webqatimeout=90 ' + no_proxy_json +
-                ' --webqareport=results/myfavoritebeer/' + browser[1] + '.html' +
-                ' --baseurl=http://%s.myfavoritebeer.org -q myfavoritebeer' % host, shell=True)
+        cmdarg = env_py + ' -m py.test ' + browser[0] + 
+                 ' --webqareport=results/123done/' + browser[1] + '.html'
         # only run one test in the default case
-        else:
-            subprocess.call(env_py + ' -m py.test --destructive' +
-                ' --credentials=credentials.yaml ' + browser[0] +
-                ' --webqatimeout=90 ' + no_proxy_json +
-                ' --baseurl=http://%s.123done.org' % host +
-                ' --webqareport=results/test_new_user/' + browser[1] + '.html' +
-                ' -q 123done/tests/test_new_user.py', 
-                shell=True)
-
-    # 7. TODO deactivate/destroy virtualenv?? maybe '--cleanup' argument?
-      # clean up credentials.yaml
+        if options.run_all:
+            cmdarg += ' -kTestNewAccount'
+        subprocess.call(cmdarg, shell=True)
 
 
 if __name__ == '__main__':
