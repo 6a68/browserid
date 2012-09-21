@@ -4,8 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from rps.onedone import OnedoneHomePage
-from rps.myfavoritebeer import MfbHomePage
+from pages.rps.onedone import OnedoneHomePage
+from pages.rps.myfavoritebeer import MfbHomePage
 from pages.account_manager import AccountManager
 from pages.complete_registration import CompleteRegistration
 from pages.dialog import SignIn
@@ -123,13 +123,11 @@ class TestNewAccount:
         # is this the wrong selenium? python is fun.
         def button_is_ready(self, selenium, locator):
             btn = selenium.find_element_by_id(locator)
-            return btn && btn.get_attribute('disabled') == null
+            return btn != null and btn.get_attribute('disabled') == null
 
         WebDriverWait(mozwebqa.selenium, mozwebqa.timeout).until(
             button_is_ready(mozwebqa.selenium, 'verifyWithPrimary'))
             # wait until it does not have a disabled attr
-            lambda s: s.find_element(
-            lambda s: 'disabled' != s.find_element(By.ID, 'verifyWithPrimary').get_attribute('disabled'))
 
         # I think the implicit timeout should work here
         mozwebqa.selenium.find_element(By.ID, 'verifyWithPrimary').click()
