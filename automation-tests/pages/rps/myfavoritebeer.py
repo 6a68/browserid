@@ -12,7 +12,7 @@ from ..page import Page
 
 class MfbHomePage(Page):
 
-    _page_title = 'My Favorite Beer, a BrowserID example'
+    _page_title = 'My Favorite Beer, a Mozilla Persona example'
 
     _sign_in_locator = (By.CSS_SELECTOR, '#loginInfo .login')
     _logout_locator = (By.ID, 'logout')
