@@ -13,7 +13,7 @@ import pytest
 
 class TestSignIn:
 
-    def _sign_in(pom):
+    def _sign_in(self, pom):
         pom.go_to_home_page()
         pom.sign_in()
 
