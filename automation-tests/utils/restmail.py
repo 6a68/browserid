@@ -81,6 +81,14 @@ class Email():
         return verify_link
 
     @property
+    def reset_password_link(self):
+        # This returns the link for resetting the password of an account
+        regex = 'https:\/\/.*reset_password\?token=.{48}'
+
+        reset_link = re.search(regex, self.body).group(0)
+        return reset_link
+
+    @property
     def add_email_address_link(self):
         # This returns the link for adding the email address of a new account
         regex = 'https:\/\/.*confirm\?token=.{48}'
