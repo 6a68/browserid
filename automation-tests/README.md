@@ -15,7 +15,13 @@ o hai!
     java -jar selenium-server-standalone-2.25.0.jar
 
 * run some tests
-* ...
+
+There isn't a test runner yet, but you can do this for each test under `tests`:
+
+    PERSONA_ENV=stage ./node_modules/.bin/vows tests/change-password-test.js
+    
+PERSONA_ENV sets the target you want to test. **stage** is the most stable set of tests + environment.
+
 * profit
 
 
