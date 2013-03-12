@@ -14,7 +14,11 @@
 
     if(!validation.email(email)) return null;
 
-    return email;
+    // localized downcasing of email domain part. TODO move elsewhere?
+    var downcasedDomainEmail = email.split('@')[0] + '@' +
+                               email.split('@')[1].toLocaleLowerCase();
+
+    return downcasedDomainEmail;
   }
 
   function getAndValidatePassword(target) {
