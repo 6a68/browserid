@@ -15,40 +15,44 @@ BrowserID.CryptoLoader = (function() {
       network = bid.Network,
       RECHECK_DELAY_MS = 50;
 
-  function addScript(src) {
+  function loadScriptDeferred(src) {
+    var onScriptLoaded = jQuery.Deferred();
+
     var script = document.createElement("script");
     script.setAttribute("src", src);
+    script.onload = script.onreadystatechange = function() {
+      var state = script.readyState;
+      if (!state || /loaded|complete/.test(state)) {
+        // when it's ready, resolve the deferred & unset the handler
+        onScriptLoaded.resolve();
+        script.onload = script.onreadystatechange = null;
+
+      // XXX could handle script loading errors here by calling
+      // onScriptLoaded.reject() instead of resolve()
+    };
     document.head.appendChild(script);
+    // return the deferred so listeners can wire up callbacks
+    return onScriptLoaded;
   }
 
-  function waitUntilExists(checkFor, context, done) {
-    if(checkFor in context) return done();
+  var onJWCryptoLoaded;
+  function requireJWCrypto(randomSeed, cb) {
+    if (onJWCryptoLoaded) {
+      // if the deferred exists, queue up the cb to be invoked when the deferred is resolved.
+      // deferreds cache their result, so this works even if invoked after the file has loaded.
+      onJWCryptoLoaded.done(cb); 
+    } else {
+      // the deferred doesn't exist, so create it
+      onJWCryptoLoaded = $.Deferred();
 
-    setTimeout(function() {
-      waitUntilExists(checkFor, context, done);
-    }, RECHECK_DELAY_MS);
-  }
-
-  var jwCrypto, loading, waiting = [];
-  function requireJWCrypto(randomSeed, done) {
-    if (jwCrypto) {
-      done(jwCrypto);
-    }
-    else if (loading) {
-      waiting.push(done);
-    }
-    else {
-      addScript("/production/bidbundle.js");
-      waiting.push(done);
-      loading = true;
-      waitUntilExists("require", window, function() {
-        jwCrypto = window.require('./lib/jwcrypto');
-        jwCrypto.addEntropy(randomSeed);
-        loading = false;
-        _.each(waiting, function(doneFunc) {
-          doneFunc(jwCrypto);
-        });
+      loadScriptDeferred('/production/bidbundle.js')
+        .done(function() {
+          var jwCrypto = window.require('./lib/jwcrypto');
+          jwCrypto.addEntropy(randomSeed);
+          // resolve any listeners and pass back jwCrypto to the callbacks
+          onJWCryptoLoaded.resolve(jwCrypto);
       });
+      // XXX could handle bidbundle load errors by adding a .fail() handler
     }
   }
 
