@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 BrowserID.Modules.Actions = (function() {
   "use strict";
 
@@ -95,6 +96,14 @@ BrowserID.Modules.Actions = (function() {
       startService("required_email", info);
     },
 
+    doAuthenticateWithUnverifiedEmail: function(info) {
+      var self = this;
+      dialogHelpers.authenticateUser.call(this, info.email, info.password,
+          function() {
+        self.publish("authenticated", info);
+      });
+    },
+
     doStageResetPassword: function(info) {
       dialogHelpers.resetPassword.call(this, info.email, info.ready);
     },
@@ -138,9 +147,13 @@ BrowserID.Modules.Actions = (function() {
       user.logoutUser(self.publish.bind(self, "logged_out"), self.getErrorDialog(errors.logoutUser));
     },
 
-    doCheckAuth: function() {
+    doCheckAuth: function(info) {
       var self=this;
-      user.checkAuthenticationAndSync(function(authenticated) {
+
+      info = info || {};
+      user.checkAuthenticationAndSync(function (authenticated) {
+        // Does the RP want us to force the user to authenticate?
+        authenticated = info.forceAuthentication ? false : authenticated;
         self.publish("authentication_checked", {
           authenticated: authenticated
         });
@@ -153,10 +166,6 @@ BrowserID.Modules.Actions = (function() {
 
     doVerifyPrimaryUser: function(info) {
       startService("verify_primary_user", info);
-    },
-
-    doUpgradeToPrimaryUser: function(info) {
-      startService("upgrade_to_primary_user", info);
     },
 
     doCannotVerifyRequiredPrimary: function(info) {
@@ -185,6 +194,6 @@ BrowserID.Modules.Actions = (function() {
   });
 
   sc = Module.sc;
-
   return Module;
+
 }());

@@ -12,6 +12,10 @@ BrowserID.Modules.PickEmail = (function() {
       dialogHelpers = helpers.Dialog,
       tooltip = bid.Tooltip,
       dom = bid.DOM,
+      BODY_SELECTOR = "body",
+      PICK_EMAIL_CLASS = "pickemail",
+      ADD_EMAIL_SELECTOR = ".useNewEmail",
+      NOT_ME_SELECTOR = ".thisIsNotMe",
       sc;
 
   function pickEmailState(event) {
@@ -42,6 +46,7 @@ BrowserID.Modules.PickEmail = (function() {
     }
 
     var identity = user.getStoredEmailKeypair(email);
+
     if (!identity) {
       /*globals alert:true*/
       alert(gettext("The selected email is invalid or has been deleted."));
@@ -60,7 +65,18 @@ BrowserID.Modules.PickEmail = (function() {
 
     var record = checkEmail.call(self, email);
     if (!! record) {
+      // Show the signing in screen as soon as the user presses the button so
+      // that it does not seem like there is a huge delay while things being
+      // processed. Show the load screen without a title (instead of "signing
+      // in") because the user may have to take some action after this - like
+      // verify their email address or answer yes/no to "is this your computer"
+      self.renderLoad("load", {
+        title: ""
+      });
+
       dialogHelpers.refreshEmailInfo.call(self, email, function (info) {
+        // XXX Why is this here? This is almost a complete duplication of
+        // the logic in state.js, and it should be there.
         record = checkEmail.call(self, email);
         // The primary has gone offline, notify the user.
         if ("offline" === info.state) {
@@ -109,6 +125,20 @@ BrowserID.Modules.PickEmail = (function() {
     }
   }
 
+  /**
+   * When an email address is selected on mobile layouts, the Persona icon
+   * color needs updated to indicate which address is currently selected.
+   */
+  function onEmailSelect(event) {
+    var id = dom.getAttr(event.target, 'id');
+    selectEmailByElementId(id);
+  }
+
+  function selectEmailByElementId(id) {
+    dom.removeClass("label.selected", "selected");
+    dom.addClass("label[for=" + id + "]", "selected");
+  }
+
   function notMe() {
     /*jshint validthis: true*/
     this.publish("notme");
@@ -121,20 +151,24 @@ BrowserID.Modules.PickEmail = (function() {
 
       options = options || {};
 
-      dom.addClass("body", "pickemail");
+      dom.addClass(BODY_SELECTOR, PICK_EMAIL_CLASS);
 
       var identities = getSortedIdentities();
 
       self.renderForm("pick_email", {
         identities: identities,
-        siteEmail: user.getOriginEmail()
+        siteEmail: user.getOriginEmail(),
+        privacyPolicy: options.privacyPolicy,
+        termsOfService: options.termsOfService,
+        siteName: options.siteName,
+        hostname: options.hostname
       });
 
-      if (options.siteTOSPP) {
+      if (options.privacyPolicy && options.termsOfService) {
         dialogHelpers.showRPTosPP.call(self);
       }
 
-      dom.getElements("body").css("opacity", "1");
+      dom.getElements(BODY_SELECTOR).css("opacity", "1");
       if (dom.getElements("#selectEmail input[type=radio]:visible").length === 0) {
         // If there is only one email address, the radio button is never shown,
         // instead focus the sign in button so that the user can click enter.
@@ -142,12 +176,14 @@ BrowserID.Modules.PickEmail = (function() {
         dom.focus("#signInButton");
       }
 
-      self.click("#useNewEmail", addEmail);
+      self.click(ADD_EMAIL_SELECTOR, addEmail);
       // The click function does not pass the event to the function.  The event
       // is needed for the label handler so that the correct radio button is
       // selected.
       self.bind("#selectEmail label", "click", proxyEventToInput);
-      self.click("#thisIsNotMe", notMe);
+      self.bind("#selectEmail input[type=radio]", "click", onEmailSelect);
+
+      self.click(NOT_ME_SELECTOR, notMe);
 
       sc.start.call(self, options);
 
@@ -156,7 +192,7 @@ BrowserID.Modules.PickEmail = (function() {
 
     stop: function() {
       sc.stop.call(this);
-      dom.removeClass("body", "pickemail");
+      dom.removeClass(BODY_SELECTOR, PICK_EMAIL_CLASS);
     }
 
     // BEGIN TESTING API

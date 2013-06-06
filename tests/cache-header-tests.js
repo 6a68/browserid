@@ -46,7 +46,7 @@ function doRequest(path, headers, cb) {
 }
 
 function hasProperFramingHeaders(r, path) {
-  if (['/communication_iframe', '/relay'].indexOf(path) !== -1) {
+  if (['/communication_iframe', '/relay', '/embedded_tos', '/embedded_privacy'].indexOf(path) !== -1) {
     assert.strictEqual(r.headers['x-frame-options'], undefined);
   } else {
     assert.strictEqual(r.headers['x-frame-options'],"DENY");
@@ -112,6 +112,21 @@ function hasProperCacheHeaders(path) {
   }
 }
 
+// verify that cache control headers exist
+function hasETaglessCacheHeaders(path) {
+  return {
+    topic: function() {
+      var self = this;
+      doRequest(path, {}, self.callback);
+    },
+    "returns 200 with content": function(err, r) {
+      assert.strictEqual(r.statusCode, 200);
+      // ensure public, max-age=10
+      assert.strictEqual(r.headers['cache-control'], 'public, max-age=10');
+    }
+  }
+}
+
 // TODO: the commented urls should gain proper cache headers for conditional GET
 suite.addBatch({
   '/': hasProperCacheHeaders('/'),
@@ -120,18 +135,16 @@ suite.addBatch({
   '/unsupported_dialog': hasProperCacheHeaders('/unsupported_dialog'),
   '/cookies_disabled': hasProperCacheHeaders('/cookies_disabled'),
   '/relay': hasProperCacheHeaders('/relay'),
-  '/authenticate_with_primary': hasProperCacheHeaders('/authenticate_with_primary'),
-  '/idp_auth_complete': hasProperCacheHeaders('/idp_auth_complete'),
-  '/forgot': hasProperCacheHeaders('/forgot'),
-  '/signin': hasProperCacheHeaders('/signin'),
   '/about': hasProperCacheHeaders('/about'),
   '/tos': hasProperCacheHeaders('/tos'),
+  '/embedded_tos': hasProperCacheHeaders('/embedded_tos'),
   '/privacy': hasProperCacheHeaders('/privacy'),
+  '/embedded_privacy': hasProperCacheHeaders('/embedded_privacy'),
   '/verify_email_address': hasProperCacheHeaders('/verify_email_address'),
   '/add_email_address': hasProperCacheHeaders('/add_email_address'),
   '/confirm': hasProperCacheHeaders('/confirm'),
 //  '/pk': hasProperCacheHeaders('/pk'),
-//  '/.well-known/browserid': hasProperCacheHeaders('/.well-known/browserid')
+  '/.well-known/browserid': hasETaglessCacheHeaders('/.well-known/browserid')
 });
 
 // related to cache headers are correct headers which let us serve static resources

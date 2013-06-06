@@ -1,5 +1,81 @@
 current train:
 
+train-2013.05.22:
+  * fix persona in ActiveX-based browsing environments: #3383
+  * performance improvement: prefetch resources in communication iframe: #3273
+  * test fixes: #3389, #3385, #3411, #3424
+  * ui improvements:
+    * make spinners spin: #3394, #3342
+    * fix error/wait/delay screen transparent background: #3393
+    * improved spinner styling: #3404, #3349
+    * set password input width fix: #3409
+    * buttons use available space: #3407
+    * TOS/PP display fixes: #3413, #3442
+    * fix white screen when clicking through invalid verification links: #3362
+    * many general UI improvements for mobile: #3410
+    * focus email address input on dialog startup: #3424
+    * ensure buttons are re-enabled when appropriate: #3431
+    * change mobile font to Feura Sans: #3430
+  * fix users unable to sign out: #3386
+  * detect when dialog closes even if on a IdP's page: #1773
+  * IE8 no longer buries dialog: #3423
+
+train-2013.05.08:
+  * SCHEMA CHANGE: the user table gained an integer field: auth
+  * CONFIG CHANGE: in production we need "forcible_issuers": [ "login.persona.org" ]
+  * FirefoxOS specific changes and features:
+    * experimental_forceAuthentication feature to force re-authentication: #3312
+    * experimental_forceIssuer feature to disable federation
+    * experimental_allowUnverified feature to support "unverified" email addresses.
+    * Show the Persona TOS/PP in the dialog without headers and footers when experimental_inlineTermsOfService is specified: #2905
+  * Test improvements: #3310
+  * Fixes to the key performance indicator mechanism: 3319
+  * Mobile styling improvements (motivated by FirefoxOS): #3341, #3343, #3355, #3350, #3352, #3354
+  * Fix an issue where slow database replication could block primary logins: #3309
+  * Require a password reset when too many failed password attempts are made: #2656
+  * Don't reset sessions to ephemeral duration after email verification: #3336
+  * (hotfix 2013.05.14) verifier parameters for forceIssuer and allowUnverified now have an experimental_ prefix
+
+train-2013.04.26:
+  * up to 25% performance improvement on mobile (delayed loading of crypto code): #3060, #3287
+  * when user is verifying email, show nothing on persona.org, just verify and redirect: #2871
+  * better handling of disabled 3rd party cookies: #2308, #2999
+  * _experimental_forceAuthentication flag added to support FirefoxOS: #3235
+  * add explicit cache headers on .well-known/browserid #3249
+  * "internal" api improvements for FirefoxOS: #3238
+  * main site now uses the dialog: issue #900
+  * UI improvements:
+    * improve readability of nav links in the header nav: #3223
+    * better display of "this is not me" button in non-english locales: #3250
+    * refine button content and organization on login.persona.org: #3196, #3197
+    * dialog no longer steals focus on FF/linux/gnome: #3211
+  * Code/infrastructure improvements:
+    * ignore specific selenium tests with a command line option: #3259
+    * helpers.log() function now takes handles multiple arguments: #3237
+    * remove issue assignment round-robin script, obsolesced by process improvements: #3205
+    * remove dep. on node-inspector: #3268
+    * remove confusing console output during frontend tests: #3290
+    * better error reporting to KPI: #3302
+    * make it harder to poison user caches during deployment #3315
+
+train-2013.04.12:
+  * Key Performance Indicator (anonymous metrics) improvements: #3148
+  * l10n fix - "Removing the last email..." string now translated: #2492
+  * UI improvements:
+    * dynamic scaling of "is this your computer" button: #2066
+    * fix double escaping of website name: #3173
+    * fix flash of wait screen on IE8/9: #2618, #2492
+    * (mobile) shrink footer text on mobile: #3129
+  * Improve frontend code versioning (to detect frontend/backend code mismatch during deployment): #3125
+  * Fix npm install errors related to automation test dependencies: #3160
+  * Keyboard accessibility improvment - allow tab from email/password to submit button: #3079
+  * Potential server performance improvement: don't use the node.js global connection agent anywhere: #3217
+  * Test improvements:
+    * improve usage of selenium test runner: #3204
+    * Add KPI load testing documentation: #3203
+    * Add a script to post an assertion to a verifier and check response: #3209
+    * Improve check_primary_support script: #3185
+
 train-2013.03.29:
   * Improve privacy policy! Clarify that we don't retain a list of sites users visit, plus other tweaks: #2922
     * Mozilla Persona: respecting users' privacy since 2011 <3
@@ -14,6 +90,10 @@ train-2013.03.29:
     * split out local selenium configs and use platform-agnostic browser identifiers: #3118
     * enable local simultaneous selenium testing with multiple firefox binaries: #3138
     * automation-tests README enhancements: #3117
+  * (hotfix 2013.04.01) remove build of automation-tests due to error messages in build: issue #3160
+  * (hotfix 2013.04.03) [dev,train-2013.03.28] expired certificates are not being invalidated. #3153 (on right branch now).
+  * (hotfix 2013.04.03) After verifying email addition, original dialog does not sign user in and close. #3172
+  * (hotfix 2013.04.03) [signin] - dialog does not close after verifying second secondary address when logged in with primary. #3178
 
 train-2013.03.15:
   * When a user types an email, it's no longer case sensitive: #3078, #2891, #2866, #2049, #2551, #1104

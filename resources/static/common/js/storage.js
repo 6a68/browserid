@@ -27,16 +27,46 @@ BrowserID.getStorage = function() {
 BrowserID.Storage = (function() {
   "use strict";
 
-  var jwcrypto,
-      ONE_DAY_IN_MS = (1000 * 60 * 60 * 24),
+  var ONE_DAY_IN_MS = (1000 * 60 * 60 * 24),
       storage = BrowserID.getStorage();
 
   // Set default values immediately so that IE8 localStorage synchronization
   // issues do not become a factor. See issue #2206
   setDefaultValues();
 
-  function storeEmails(emails) {
-    storage.emails = JSON.stringify(emails);
+  // BEGIN TRANSITION CODE
+  /** Transition code is to handle the moving data from the .loggedIn
+   * namespace to the .site namespace. It can safely be removed one month after
+   * this is merged when people's Persona sessions have expired.
+   */
+  function upgradeLoggedInInfo() {
+    var allInfo = JSON.parse(storage.loggedIn || "{}");
+    for (var site in allInfo) {
+      siteSet(site, "logged_in", allInfo[site]);
+    }
+    storage.removeItem("loggedIn");
+  }
+  upgradeLoggedInInfo();
+  // END TRANSITION CODE
+
+  function emailsStorageKey(issuer) {
+    return issuer || "default";
+  }
+
+  function storeEmails(emails, issuer) {
+    // all emails are stored under the emails namespace. Each issuer has its
+    // own subspace, allowing there to be multiple forced issuers. The default
+    // namespace is "default"
+    var allEmails;
+    try {
+      allEmails = JSON.parse(storage.emails || "{}");
+    } catch(e) {
+      clear();
+      allEmails = {};
+    }
+
+    allEmails[emailsStorageKey(issuer)] = emails;
+    storage.emails = JSON.stringify(allEmails);
   }
 
   function clear() {
@@ -61,7 +91,6 @@ BrowserID.Storage = (function() {
       emailToUserID: {},
       emails: {},
       interaction_data: {},
-      loggedIn: {},
       main_site: {},
       managePage: {},
       returnTo: null,
@@ -75,11 +104,11 @@ BrowserID.Storage = (function() {
     });
   }
 
-  function getEmails() {
+  function getEmails(issuer) {
     try {
-      var emails = JSON.parse(storage.emails || "{}");
-      if (emails !== null)
-        return emails;
+      var allEmails = JSON.parse(storage.emails || "{}");
+      if (allEmails)
+        return allEmails[emailsStorageKey(issuer)] || {};
     } catch(e) {
     }
 
@@ -88,28 +117,28 @@ BrowserID.Storage = (function() {
     return {};
   }
 
-  function getEmailCount() {
-    return _.size(getEmails());
+  function getEmailCount(issuer) {
+    return _.size(getEmails(issuer));
   }
 
-  function getEmail(email) {
-    var ids = getEmails();
+  function getEmail(email, issuer) {
+    var ids = getEmails(issuer);
 
     return ids && ids[email];
   }
 
-  function addEmail(email, obj) {
-    var emails = getEmails();
+  function addEmail(email, obj, issuer) {
+    var emails = getEmails(issuer);
     obj = obj || {};
     emails[email] = obj;
-    storeEmails(emails);
+    storeEmails(emails, issuer);
   }
 
-  function removeEmail(email) {
-    var emails = getEmails();
+  function removeEmail(email, issuer) {
+    var emails = getEmails(issuer);
     if(emails[email]) {
       delete emails[email];
-      storeEmails(emails);
+      storeEmails(emails, issuer);
 
       // remove any sites associated with this email address.
       var siteInfo = JSON.parse(storage.siteInfo || "{}");
@@ -117,30 +146,25 @@ BrowserID.Storage = (function() {
         if(siteInfo[site].email === email) {
           delete siteInfo[site].email;
         }
-      }
-      storage.siteInfo = JSON.stringify(siteInfo);
 
-      // remove any logged in sites associated with this address.
-      var loggedInInfo = JSON.parse(storage.loggedIn || "{}");
-      for(var loggedSite in loggedInInfo) {
-        if(loggedInInfo[loggedSite] === email) {
-          delete loggedInInfo[loggedSite];
+        if (siteInfo[site].logged_in === email) {
+          delete siteInfo[site].logged_in;
         }
       }
-      storage.loggedIn = JSON.stringify(loggedInInfo);
+      storage.siteInfo = JSON.stringify(siteInfo);
     }
     else {
       throw new Error("unknown email address");
     }
   }
 
-  function invalidateEmail(email) {
-    var id = getEmail(email);
+  function invalidateEmail(email, issuer) {
+    var id = getEmail(email, issuer);
     if (id) {
       delete id.priv;
       delete id.pub;
       delete id.cert;
-      addEmail(email, id);
+      addEmail(email, id, issuer);
     }
     else {
       throw new Error("unknown email address");
@@ -228,28 +252,21 @@ BrowserID.Storage = (function() {
     storage[namespace] = JSON.stringify(allInfo);
   }
 
-  function setLoggedIn(origin, email) {
-    var allInfo = JSON.parse(storage.loggedIn || "{}");
-    if (email) allInfo[origin] = email;
-    else delete allInfo[origin];
-    storage.loggedIn = JSON.stringify(allInfo);
-  }
-
-  function getLoggedIn(origin) {
-    var allInfo = JSON.parse(storage.loggedIn || "{}");
-    return allInfo[origin];
-  }
-
   function loggedInCount() {
-    var allInfo = JSON.parse(storage.loggedIn || "{}");
-    return _.size(allInfo);
+    var count = 0;
+    var allSiteInfo = JSON.parse(storage.siteInfo || "{}");
+    for (var key in allSiteInfo) {
+      if (allSiteInfo[key].logged_in) count++;
+    }
+
+    return count;
   }
 
   function watchLoggedIn(origin, callback) {
-    var lastState = getLoggedIn(origin);
+    var lastState = siteGet(origin, "logged_in");
 
     function checkState() {
-      var currentState = getLoggedIn(origin);
+      var currentState = siteGet(origin, "logged_in");
       if (lastState !== currentState) {
         callback();
         lastState = currentState;
@@ -260,8 +277,13 @@ BrowserID.Storage = (function() {
     if (window.addEventListener) window.addEventListener('storage', checkState, false);
     else window.setInterval(checkState, 2000);
   }
+
   function logoutEverywhere() {
-    storage.loggedIn = "{}";
+    var allSiteInfo = JSON.parse(storage.siteInfo || "{}");
+    for (var site in allSiteInfo) {
+      delete allSiteInfo[site].logged_in;
+    }
+    storage.siteInfo = JSON.stringify(allSiteInfo);
   }
 
   function mapEmailToUserID(emailOrUserID) {
@@ -435,6 +457,7 @@ BrowserID.Storage = (function() {
     /**
      * Get the number of stored emails
      * @method getEmailCount
+     * @param {string} [issuer]
      * @return {number}
      */
     getEmailCount: getEmailCount,
@@ -459,6 +482,11 @@ BrowserID.Storage = (function() {
      */
     invalidateEmail: invalidateEmail,
 
+    /**
+     * The site namespace is where to store any information that relates to
+     * a particular RP, like which email is selected, if an email is signed in,
+     * etc.
+     */
     site: {
       /**
        * Set a data field for a site
@@ -499,12 +527,6 @@ BrowserID.Storage = (function() {
       set: generic2KeySet.curry("managePage"),
       get: generic2KeyGet.curry("managePage"),
       remove: generic2KeyRemove.curry("managePage")
-    },
-
-    signInEmail: {
-      set: generic2KeySet.curry("main_site", "signInEmail"),
-      get: generic2KeyGet.curry("main_site", "signInEmail"),
-      remove: generic2KeyRemove.curry("main_site", "signInEmail")
     },
 
     usersComputer: {
@@ -557,18 +579,6 @@ BrowserID.Storage = (function() {
      */
     updateEmailToUserIDMapping: updateEmailToUserIDMapping,
 
-    /** set logged in state for a site
-     * @param {string} origin - the site to set logged in state for
-     * @param {string} email - the email that the user is logged in with or falsey if login state should be cleared
-     */
-    setLoggedIn: setLoggedIn,
-
-    /** check if the user is logged into a site
-     * @param {string} origin - the site to set check the logged in state of
-     * @returns the email with which the user is logged in
-     */
-    getLoggedIn: getLoggedIn,
-
     /**
      * Get the number of sites the user is logged in to.
      * @method loggedInCount
@@ -603,5 +613,13 @@ BrowserID.Storage = (function() {
      * @method setDefaultValues
      */
     setDefaultValues: setDefaultValues
+    // BEGIN TRANSITION CODE
+    /**
+     * Upgrade the site->user logged in info from the loggedIn namespace to be
+     * under the site namespace.
+     */
+    ,
+    upgradeLoggedInInfo: upgradeLoggedInInfo
+    // END TRANSITION CODE
   };
 }());

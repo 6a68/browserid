@@ -15,6 +15,7 @@ BrowserID.Network = (function() {
       xhr = bid.XHR,
       post = xhr.post,
       get = xhr.get,
+      // XXX get this out of here!
       storage = bid.Storage;
 
   function onContextChange(msg, result) {
@@ -30,6 +31,19 @@ BrowserID.Network = (function() {
   function withContext(cb, onFailure) {
     if(typeof context !== "undefined") cb(context);
     else {
+      // session_context always checks for a javascript readable cookie,
+      // this allows our javascript code in the dialog and communication iframe
+      // to determine whether cookies are (partially) disabled.  See #2999 for
+      // more context.
+      // NOTE - the cookie is set here instead of cookiesEnabled because
+      // session_context is only ever called once per context session. We have
+      // to ensure the cookie is set for that single call.
+      try {
+        document.cookie = "can_set_cookies=1";
+      } catch(e) {
+        // If cookies are disabled, some browsers throw an exception. Ignore
+        // this, the backend will see that cookies are disabled.
+      }
       xhr.withContext(cb, onFailure);
     }
   }
@@ -44,8 +58,9 @@ BrowserID.Network = (function() {
     post({
       url: wsapiName,
       data: data,
-      success: function(status) {
-        complete(onComplete, status.success);
+      success: function(info) {
+        if (info.success) complete(onComplete, info);
+        else complete(onComplete, false);
       },
       error: function(info) {
         // 429 is throttling.
@@ -99,13 +114,15 @@ BrowserID.Network = (function() {
      * with status parameter - true if authenticated, false otw.
      * @param {function} [onFailure] - called on XHR failure
      */
-    authenticate: function(email, password, onComplete, onFailure) {
+    authenticate: function(email, password, allowUnverified,
+        onComplete, onFailure) {
       post({
         url: "/wsapi/authenticate_user",
         data: {
           email: email,
           pass: password,
-          ephemeral: !storage.usersComputer.confirmed(email)
+          ephemeral: !storage.usersComputer.confirmed(email),
+          allowUnverified: allowUnverified
         },
         success: onComplete,
         error: onFailure
@@ -174,14 +191,17 @@ BrowserID.Network = (function() {
      * @param {string} email
      * @param {string} password
      * @param {string} origin - site user is trying to sign in to.
+     * @param {boolean} allowUnverified
      * @param {function} [onComplete] - Callback to call when complete.
      * @param {function} [onFailure] - Called on XHR failure.
      */
-    createUser: function(email, password, origin, onComplete, onFailure) {
+    createUser: function(email, password, origin, allowUnverified,
+        onComplete, onFailure) {
       var postData = {
         email: email,
         pass: password,
-        site : origin
+        site : origin,
+        allowUnverified: allowUnverified
       };
       stageAddressForVerification(postData, "/wsapi/stage_user", onComplete, onFailure);
     },
@@ -453,6 +473,7 @@ BrowserID.Network = (function() {
      * (is it a primary or a secondary)
      * @method addressInfo
      * @param {string} email - Email address to check.
+     * @param {string} issuer - Force a specific Issuer by specifing a domain. null for default.
      * @param {function} [onComplete] - Called with an object on success,
      *   containing these properties:
      *     type: <secondary|primary>
@@ -461,9 +482,11 @@ BrowserID.Network = (function() {
      *     prov: string - url to embed for silent provisioning - present if type is secondary
      * @param {function} [onFailure] - Called on XHR failure.
      */
-    addressInfo: function(email, onComplete, onFailure) {
+    addressInfo: function(email, issuer, onComplete, onFailure) {
+      issuer = issuer || 'default';
       get({
-        url: "/wsapi/address_info?email=" + encodeURIComponent(email),
+        url: "/wsapi/address_info?email=" + encodeURIComponent(email) +
+             "&issuer=" + encodeURIComponent(issuer),
         success: function(data, textStatus, xhr) {
           complete(onComplete, data);
         },
@@ -495,14 +518,22 @@ BrowserID.Network = (function() {
      * Certify the public key for the email address.
      * @method certKey
      */
-    certKey: function(email, pubkey, onComplete, onFailure) {
+    certKey: function(email, pubkey, forceIssuer, allowUnverified,
+        onComplete, onFailure) {
+      var postData = {
+        email: email,
+        pubkey: pubkey.serialize(),
+        ephemeral: !storage.usersComputer.confirmed(email),
+        allowUnverified: allowUnverified
+      };
+
+      if (forceIssuer !== "default") {
+        postData.forceIssuer = forceIssuer;
+      }
+
       post({
         url: "/wsapi/cert_key",
-        data: {
-          email: email,
-          pubkey: pubkey.serialize(),
-          ephemeral: !storage.usersComputer.confirmed(email)
-        },
+        data: postData,
         success: onComplete,
         error: onFailure
       });
@@ -584,32 +615,21 @@ BrowserID.Network = (function() {
      * @method cookiesEnabled
      */
     cookiesEnabled: function(onComplete, onFailure) {
-      var enabled;
-      try {
-        // NOTE - The Android 3.3 and 4.0 default browsers will still pass
-        // this check.  This causes the Android browsers to only display the
-        // cookies diabled error screen only after the user has entered and
-        // submitted input.
-        // http://stackoverflow.com/questions/8509387/android-browser-not-respecting-cookies-disabled
+      withContext(function(context) {
+        // session_context always checks for a javascript readable cookie,
+        // this allows our javascript code in the dialog and communication
+        // iframe to determine whether cookies are (partially) disabled.
+        // See #2999 for more context.
+        var enabled = context.cookies;
 
-        document.cookie = "__cookiesEnabledCheck=1";
-        enabled = document.cookie.indexOf("__cookiesEnabledCheck") > -1;
+        // BEGIN TESTING API
+        if (typeof Network.cookiesEnabledOverride === "boolean") {
+          enabled = Network.cookiesEnabledOverride;
+        }
+        // END TESTING API
 
-        // expire the cookie NOW by setting its expires date to yesterday.
-        var expires = new Date();
-        expires.setDate(expires.getDate() - 1);
-        document.cookie = "__cookiesEnabledCheck=; expires=" + expires.toGMTString();
-      } catch(e) {
-        enabled = false;
-      }
-
-      // BEGIN TESTING API
-      if (typeof Network.cookiesEnabledOverride === "boolean") {
-        enabled = Network.cookiesEnabledOverride;
-      }
-      // END TESTING API
-
-      complete(onComplete, enabled);
+        complete(onComplete, enabled);
+      }, onFailure);
     },
 
     /**

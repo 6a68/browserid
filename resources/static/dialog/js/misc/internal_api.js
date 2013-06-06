@@ -9,8 +9,31 @@
       bid = BrowserID,
       internal = bid.internal = bid.internal || {},
       user = bid.User,
+      network = bid.Network,
       storage = bid.Storage,
+      log = bid.Helpers.log,
       moduleManager = bid.module;
+
+  network.init();
+  network.clearContext();
+
+  function parseOptions(options) {
+    if (typeof options === 'string') {
+      // Firefox forbids sending objects across the blood-brain barrier from
+      // gecko into userland JS.  So we just stringify and destringify our
+      // objects when calling from b2g native code.
+      try {
+        options = JSON.parse(options);
+      } catch(e) {
+        log("invalid options string: " + options);
+        // rethrow the error
+        throw e;
+      }
+    }
+
+    return options;
+  }
+
 
   // given an object containing an assertion, extract the assertion string,
   // as the internal API is supposed to return a string assertion, not an
@@ -35,7 +58,7 @@
       callback && callback(status);
     }
 
-    user.checkAuthentication(function onComplete(authenticated) {
+    user.checkAuthentication(function(authenticated) {
       if (authenticated) {
         storage.site.set(origin, "remember", true);
       }
@@ -60,7 +83,15 @@
    * @param {object} options.  See options block for navigator.id.get.
    * options.silent defaults to false.
    */
-  internal.get = function(origin, callback, options) {
+  internal.get = function(origin, callback, options, externalLog) {
+    log = externalLog || bid.Helpers.log;
+
+    try {
+      options = parseOptions(options);
+    } catch(e) {
+      return;
+    }
+
     function complete(assertion) {
       assertion = assertionObjectToString(assertion);
       // If no assertion, give no reason why there was a failure.
@@ -112,6 +143,17 @@
     controller.get(origin, options, complete, complete);
   }
 
+  function setOrigin(origin) {
+    user.setOrigin(origin);
+    // B2G and marketplace use special issuers that disable primaries. Go see
+    // if the current domain uses a special issuer, if it does, set the issuer
+    // in user.js.
+    var issuer = storage.site.get(user.getOrigin(), "issuer");
+    if (issuer) {
+      user.setIssuer(issuer);
+    }
+  }
+
   /*
    * Get an assertion without user interaction - internal use
    */
@@ -121,10 +163,11 @@
       callback && callback(assertion || null);
     }
 
+    setOrigin(origin);
+
     user.checkAuthenticationAndSync(function(authenticated) {
       // User must be authenticated to get an assertion.
       if(authenticated) {
-        user.setOrigin(origin);
         user.getAssertion(email, user.getOrigin(), function(assertion) {
           complete(assertion || null);
         }, complete.curry(null));
@@ -146,7 +189,7 @@
       callback && callback(status);
     }
 
-    user.setOrigin(origin);
+    setOrigin(origin);
     user.logout(callback, complete.curry(null));
   };
 
@@ -162,5 +205,72 @@
 
     user.logoutUser(callback, complete.curry(null));
   };
+
+  internal.watch = function (callback, options, externalLog) {
+    log = externalLog || bid.Helpers.log;
+
+    try {
+      options = parseOptions(options);
+    } catch(e) {
+      return callback({error: String(e)});
+    }
+    internalWatch(callback, options);
+  };
+
+
+  function internalWatch(callback, options) {
+    var remoteOrigin = options.origin;
+    var loggedInUser = options.loggedInUser;
+    setOrigin(remoteOrigin);
+    checkAndEmit();
+
+    function checkAndEmit() {
+      // this will re-certify the user if neccesary
+      // Firefox OS 1.0.1 keeps one copy of the communication iframe in memory
+      // all the time. The communication iframe gets a copy of session context
+      // when it first loads and caches it, it is never updated even if the user
+      // uses the dialog to sign in. To avoid manually updating the cache when the user
+      // signs in using the dialog, clear the cache every time a new tab
+      // requires internalWatch.
+      user.clearContext();
+      user.getSilentAssertion(loggedInUser, function(email, assertion) {
+        if (email) {
+          // only send login events when the assertion is defined - when
+          // the 'loggedInUser' is already logged in, it's false - that is
+          // when the site already has the user logged in and does not want
+          // the resources or cost required to generate an assertion
+          if (assertion) doLogin(assertion);
+          loggedInUser = email;
+        } else if (loggedInUser !== null) {
+          // only send logout events when loggedInUser is not null, which is an
+          // indicator that the site thinks the user is logged out
+          doLogout();
+        }
+        doReady();
+      }, function(err) {
+        log('silent return: err', err);
+        doLogout();
+        doReady();
+      }, log);
+    }
+
+    function doReady(params) {
+      callback({ method: 'ready' });
+    }
+
+    function doLogin(params) {
+      // Through the _internalParams, we signify to any RP callers that are
+      // interested that this assertion was acquired without user interaction.
+      callback({ method: 'login', assertion: params, _internalParams: {silent: true} });
+    }
+
+    function doLogout() {
+      if (loggedInUser !== null) {
+        loggedInUser = null;
+        storage.site.remove(remoteOrigin, "logged_in");
+        callback({ method: 'logout' });
+      }
+    }
+  }
 
 }());

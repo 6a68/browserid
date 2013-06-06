@@ -43,12 +43,11 @@
 
   function getAssertion(email, callback) {
     /*jshint validthis:true*/
-    var self=this,
-        wait = bid.Screens.wait;
+    var self=this;
 
     user.getAssertion(email, user.getOrigin(), function(assert) {
       assert = assert || null;
-      wait.hide();
+
       self.publish("assertion_generated", {
         assertion: assert
       });
@@ -79,14 +78,14 @@
     var self=this;
     user.createSecondaryUser(email, password, function(status) {
       if (status.success) {
-        var info = { email: email, password: password };
-        self.publish("user_staged", info, info);
-        complete(callback, true);
+        var data = { email: email, password: password };
+        var msg = status.unverified ? "unverified_created" : "user_staged";
+        self.publish(msg, data, data);
       }
       else {
         tooltip.showTooltip("#could_not_add");
-        complete(callback, false);
       }
+      complete(callback, status);
     }, self.getErrorDialog(errors.createUser, callback));
   }
 
@@ -100,7 +99,7 @@
       else {
         tooltip.showTooltip("#could_not_add");
       }
-      complete(callback, status.success);
+      complete(callback, status);
     }, self.getErrorDialog(errors.requestPasswordReset, callback));
   }
 
@@ -114,7 +113,7 @@
       else {
         tooltip.showTooltip("#could_not_add");
       }
-      complete(callback, status.success);
+      complete(callback, status);
     }, self.getErrorDialog(errors.transitionToSecondary, callback));
   }
 
@@ -128,7 +127,7 @@
       else {
         tooltip.showTooltip("#could_not_add");
       }
-      complete(callback, status.success);
+      complete(callback, status);
     }, self.getErrorDialog(errors.requestPasswordReset, callback));
   }
 
@@ -177,7 +176,7 @@
       else {
         tooltip.showTooltip("#could_not_add");
       }
-      complete(callback, status.success);
+      complete(callback, status);
     }, self.getErrorDialog(errors.addEmail, callback));
   }
 

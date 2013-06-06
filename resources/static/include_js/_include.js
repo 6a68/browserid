@@ -112,6 +112,13 @@
 
   if (!navigator.id) {
     navigator.id = {};
+    // Is there a native implementation on this platform?
+    // If so, hook navigator.id onto it.
+    if (navigator.mozId) {
+      navigator.id = navigator.mozId;
+    } else {
+      navigator.id = {};
+    }
   }
 
   if (!navigator.id.request || navigator.id._shimmed) {
@@ -124,7 +131,7 @@
 
     var windowOpenOpts =
       (isFennec ? undefined :
-       "menubar=0,location=1,resizable=1,scrollbars=1,status=0,dialog=1,minimizable=1,width=700,height=375");
+       "menubar=0,location=1,resizable=1,scrollbars=1,status=0,width=700,height=375");
 
     var w;
 
@@ -324,6 +331,7 @@
       if (options.privacyPolicy && !options.termsOfService) {
         warn("privacyPolicy ignored unless termsOfService also defined");
       }
+
 
       options.rp_api = getRPAPI();
       // reset the api_called in case the site implementor changes which api

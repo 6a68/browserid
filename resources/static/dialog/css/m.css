@@ -2,88 +2,354 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * Pretty much everything in this file overrides styles set in style.css.
+ * Many styling changes are to allow content to be in its natural position at
+ * the top of the screen, some styling changes are to make things easier to use
+ * on mobile, some changes are to match the standard B2G styling.
+ */
+
+
 /* If the max-width changes, the size given in screen_size_hacks.js must be
  * updated as well.
  */
 @media screen and (max-width: 640px) {
 
   html, body {
-    height: auto;
     -webkit-text-size-adjust: none;
   }
 
   /* Remove background image gradients set in style.css which cause
    * horizontal lines to appear while the dialog is loading.
+   * Set the default font to Feura Sans
    */
   body {
-    background-image: url('/common/i/grain.png');
+    height: 100%;
+    background: #eff0f2 none;
+    font-family: 'Feura Sans', 'Open Sans', 'Lucida Sans', 'Lucida Grande', 'Lucida Sans Unicode', Verdana, sans-serif;
   }
 
-
-  header, footer {
-    position: static;
-    padding: 5px 20px;
+  /**
+   * Get rid of the OpenSans letter-spacing.
+   */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: normal;
   }
 
-  footer{
-    padding: 10px 20px;
-  }
-
-  button {
-    height: 40px;
-    font-size: 18px;
-  }
-
-  input[type=email],
-  input[type=password] {
-    font-size: 17px;
-  }
-
-  section, .arrow, .arrowContainer {
+  header, footer, .persona_intro {
     display: none;
   }
 
+  a {
+    color: #0095dd;
+    text-shadow: none;
+  }
+
+  /*
+   * generic anchor for a form section
+   */
+  .form_section a {
+    font-size: 13px;
+  }
+
+  button, .submit button, .buttonrow a {
+    height: 40px;
+    min-width: 105px;
+    font-size: 14px;
+    padding: 6px 10px 8px;
+    border-radius: 2px;
+    float: right;
+    font-weight: 400;
+    color: #414343;
+    text-shadow: 0 1px #fff;
+    text-transform: capitalize;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 3px;
+  }
+
+  button, .submit button {
+    background: #30bed9;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#00c3ec), to(#00aacc));
+    background-image: -webkit-linear-gradient(top, #00c3ec, #00aacc);
+    background-image:    -moz-linear-gradient(top, #00c3ec 0%, #00aacc);
+    background-image:      -ms-linear-gradient(top, #00c3ec, #00aacc);
+    background-image:       -o-linear-gradient(top, #00c3ec, #00aacc);
+    background-image:          linear-gradient(top, #00c3ec, #00aacc);
+    text-shadow: none;
+  }
+
+  button:hover, button:focus,
+  .submit button:hover, .submit button:focus {
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#00c3ec), to(#00b6dc));
+    background-image: -webkit-linear-gradient(top, #00c3ec, #00b6dc);
+    background-image:    -moz-linear-gradient(top, #00c3ec 0%, #00b6dc);
+    background-image:      -ms-linear-gradient(top, #00c3ec, #00b6dc);
+    background-image:       -o-linear-gradient(top, #00c3ec, #00b6dc);
+    background-image:          linear-gradient(top, #00c3ec, #00b6dc);
+  }
+
+  button:hover, button:focus, button:active,
+  .submit button:hover, .submit button:focus, .submit button:active {
+    background-image: none;
+  }
+
+  button:active, .submit button:active {
+    background-color: #018cab;
+  }
+
+  /**
+   * Override all the disabled styles on the buttons. The mobile button
+   * has no spinner.
+   */
+  button[disabled],
+  button[disabled]:hover, .button[disabled]:hover,
+  button[disabled]:focus, .button[disabled]:focus,
+  button[disabled]:active, .button[disabled]:active,
+  .submit_disabled button, .submit_disabled .button,
+  .submit_disabled button:hover, .submit_disabled .button:hover,
+  .submit_disabled button:focus, .submit_disabled .button:focus,
+  .submit_disabled button:active, .submit_disabled .button:active,
+  .submit_disabled .submit button, .submit_disabled .submit .button,
+  .submit_disabled .submit button:hover, .submit_disabled .submit .button:hover,
+  .submit_disabled .submit button:focus, .submit_disabled .submit .button:focus,
+  .submit_disabled .submit button:active, .submit_disabled .submit .button:active {
+    color: #c7c7c7;
+    cursor: default;
+    background: #e8e8e8;
+    border: 1px solid #a1c3cc;
+    box-shadow: none;
+    text-shadow: none;
+  }
+
+
+  /**
+   * On mobile, the anchors are meant to look like buttons. Give them an
+   * overhaul.
+   */
+  .buttonrow a {
+    background-color: #fcfcfb;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#fcfcfb), to(#d8d9d8)));
+    background-image: -webkit-linear-gradient(top, #fcfcfb, #d8d9d8);
+    background-image:    -moz-linear-gradient(top, #fcfcfb, #d8d9d8);
+    background-image:     -ms-linear-gradient(top, #fcfcfb, #d8d9d8);
+    background-image:      -o-linear-gradient(top, #fcfcfb, #d8d9d8);
+    background-image:         linear-gradient(top, #fcfcfb, #d8d9d8);
+    box-shadow: inset 0 -1px #cbcbca;
+    border: 1px solid #b6b6b5;
+  }
+
+  .buttonrow a:hover,
+  .buttonrow a:focus {
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#fcfcfb), to(#ccc)));
+    background-image: -webkit-linear-gradient(top, #fcfcfb, #ccc);
+    background-image:    -moz-linear-gradient(top, #fcfcfb, #ccc);
+    background-image:     -ms-linear-gradient(top, #fcfcfb, #ccc);
+    background-image:      -o-linear-gradient(top, #fcfcfb, #ccc);
+    background-image:         linear-gradient(top, #fcfcfb, #ccc);
+  }
+
+  .buttonrow a:active {
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#d8d9d8), to(#fcfcfb)));
+    background-image: -webkit-linear-gradient(top, #d8d9d8, #fcfcfb);
+    background-image:    -moz-linear-gradient(top, #d8d9d8, #fcfcfb);
+    background-image:     -ms-linear-gradient(top, #d8d9d8, #fcfcfb);
+    background-image:      -o-linear-gradient(top, #d8d9d8, #fcfcfb);
+    background-image:         linear-gradient(top, #d8d9d8, #fcfcfb);
+  }
+
+  .buttonrow > .right {
+    margin: 0;
+  }
+
+  /**
+   * Oh, what hideousnous this is. All because flex box doesn't want to play
+   * nicely on B2G. The buttons are each 50% wide, but with a left margin
+   * to keep buttons separated. The margin causes buttons to overflow onto
+   * two lines. Pull the right button to the right by 10px to keep the
+   * buttons on one line. The buttonrow has its right hand padding adjusted by
+   * 10px to handle this.
+   */
+  .buttonrow > button,
+  .buttonrow > button.right {
+    margin: 0 -10px 0 10px;
+  }
+
+  input[type=email],
+  input[type=password],
+  input[type=text] {
+    font-size: 17px;
+    padding: 9px 5px;
+    border-radius: 5px;
+    border: 1px solid #e3e3e3;
+    box-shadow: 0 0 1px 1px #e3e3e3;
+  }
+
+  input[type=email]:focus,
+  input[type=password]:focus,
+  input[type=text]:focus {
+    border: 1px solid #0096dc;
+    box-shadow: 0 0 5px 0 #0096dc;
+  }
+
+  /**
+   * Android ICS (2.3.*) has an issue where the background image dissappears
+   * when the user clicks in the input box. See
+   * http://code.google.com/p/android/issues/detail?id=24746
+   */
+  #authentication_email {
+    background-image: url('/dialog/i/persona_watermark.png');
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-position: left top;
+    padding-left: 60px;
+  }
+
+  /**
+   * Any buttons in the button row should be at minimum 50% wide. If the
+   * language causes the button to expand greater than that, great.
+   */
+  .buttonrow > button, .buttonrow > a {
+    min-width: 50%;
+  }
+
+  /**
+   * Do not show the placeholder text for the authentication email input box on
+   * mobile devices.
+   */
+  #authentication_email::-webkit-input-placeholder {
+    color: transparent;
+  }
+
+  #authentication_email::-webkit-input-placeholder {
+    color: transparent;
+  }
+
+  /** Newer firefox */
+  #authentication_email::-moz-placeholder {
+    color: transparent;
+  }
+
+  /** Older firefox */
+  #authentication_email:-moz-placeholder {
+    color: transparent;
+  }
+
+  /** IE10+ */
+  #authentication_email:-ms-input-placeholder {
+    color: transparent;
+  }
+
+  /** Standards browsers */
+  #authentication_email::input-placeholder {
+    color: transparent;
+  }
+
+  /**
+   * Reset the absolute positioning and coloring that is placed on
+   * each section.
+   */
+  section {
+    position: fixed;
+    display: none;
+  }
+
+  /**
+   * formWrap is the section that holds the main content.
+   */
+  #formWrap {
+    background-color: transparent;
+    position: static;
+    display: block;
+  }
+
+  .form_section h2 {
+    font-size: 19px;
+    margin: 20px 0 15px 0;
+  }
+
   .inputs > li > label {
-    font-size: 16px;
-    margin-bottom: 5px;
+    font-size: 15px;
   }
 
   .vertical > strong {
     font-size: 20px;
   }
 
-  #selectEmail {
-    top: auto;
-    left: auto;
-    bottom: auto;
-    right: auto;
-    overflow-y: inherit;
-    position: static;
-    width: auto;
+
+  .isMobile,
+  .returning .isReturning,
+  .start .isStart,
+  .addressInfo .isAddressInfo {
+    display: block;
   }
 
-  #signIn {
-    top: auto;  /* this will be set in JS to be at the bottom of the header */
-    right: 0;
-    width: auto;
-    padding: 0;
+  /**
+   * If this is a desktop element, no way, no how should it be showing. This
+   * situation is what !important is for.
+   */
+  .isDesktop, .returning .isDesktopOrStart {
+    display: none !important;
   }
 
-  #favicon {
+  /**
+   * This corresponds to the .hidden in common/css/style.css
+   */
+  label.isDesktop {
+    /* This funkiness is so that labels still appear for screen readers */
+    visibility: hidden;
+    display: block;
+    height: 0;
+    /* hidden items still take up their natural width in the DOM, which can
+     * cause some funkiness if there is a really long email address. Long
+     * addresses cause the set password input boxes to be wider than the
+     * screen. See issue #3409
+     */
+    width: 0;
+    overflow: hidden;
+  }
+
+  /**
+   * This corresponds to the label.hidden + <selector> in common/css/style.css
+   * If these labels are hidden due to mobile styling, remove the top margin.
+   */
+  label.isDesktop + input[type=text],
+  label.isDesktop + input[type=password],
+  label.isDesktop + input[type=email] {
+    margin-top: 0;
+  }
+
+
+  /**
+   * The favicon is the RP info & TOS/PP agreement.
+   */
+  .favicon {
+      display: none;
       overflow: inherit;
-      display: block;
       width: 100%;
-      /* Changed this from relative to static to fix issue #1309 - tooltips
+        /* Changed this from relative to static to fix issue #1309 tooltips
        * being partially cut off by the site URL bar
        */
       position: static;
       padding: 10px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
       text-align: center;
       left: 0;
+      background-color: #dcdcdc;
+      border-bottom: 1px solid #bcbcbc;
+      box-shadow: 0px -1px #fff inset;
   }
 
-  #favicon img {
+  /**
+   * Visitors to FirefoxOS Marketplace on mobile devices do not see the normal
+   * favicon/RP Info. They see special RP info placed below the Persona TOS/PP
+   * text.
+   */
+  .showMobileFavicon .favicon {
+    display: block;
+  }
+
+  .favicon img {
       max-width: 32px;
       max-height: 32px;
       display: inline;
@@ -91,7 +357,7 @@
       vertical-align: middle;
   }
 
-  #favicon h2, #favicon h3 {
+  .favicon h2, .favicon h3 {
       margin: 0 5px;
       height: auto;
       line-height: 32px;
@@ -100,48 +366,173 @@
       vertical-align: middle;
   }
 
-  #favicon h3 {
+  .favicon h3 {
       font-size: 16px;
   }
 
-  #favicon .vertical {
+  .favicon .vertical {
       height: auto;
       line-height: 32px;
       vertical-align: middle;
   }
 
-
-  #signIn .table, #signIn .container {
-      width: 100%;
+  .tospp {
+    font-size: 8.375pt;
   }
 
-  #signIn .table{
-    padding: 20px;
+  #signIn {
+    position: static;
+    width: auto;
+    padding: 0;
   }
 
   #signIn .vertical {
     position: static;
+    display: block;
   }
 
   #signIn form {
       padding: 0;
   }
 
-  #formWrap {
-      background-color: transparent;
+  #error, .black {
+    background: #3b3b3b;
+    background: rgba(64, 64, 64, .95);
+    color: #fff;
+    text-align: left;
   }
 
-  .form #formWrap, .waiting #wait, .delay #delay, #error #error {
+  #error {
+    /**
+     * The bottom OK button area is 80px. Force the rest of the
+     * text to be vertically centered.
+     */
+    padding-bottom: 80px;
+  }
+
+  /**
+   * Override for hover state on an anchor. The black background makes it
+   * difficult to see the normal hover state
+   */
+  #error a:hover, .black a:hover {
+    color: #30b2d9;
+  }
+
+  #error h2, .black h2 {
+    text-align: left;
+    text-shadow: none;
+    font-weight: 300;
+    font-size: 18px;
+    border-bottom: 1px solid #656161;
+    letter-spacing: .25px;
+    padding-bottom: 10px;
+  }
+
+  #error h3, #error p.emphasis, .black h3, .black p.emphasis {
+    text-shadow: none;
+    font-weight: 300;
+    font-size: 22px;
+    letter-spacing: .25px;
+    padding-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  #error .emphasis, .black p.emphasis {
+    color: #fff;
+  }
+
+  #error .buttonrow,
+  /**
+   * Yuck, can't we collapse lightbox, #error and .black somehow?
+   */
+  .lightbox .buttonrow {
+    background-color: #3a3a3a;
+    padding: 20px 25px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  #error .buttonrow button,
+  .lightbox .buttonrow button {
+    color: #414343;
+    text-shadow: 1px 1px #fff;
+    background: #30bed9;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .waiting #wait, .delay #delay, .error #error, .loading #load {
       display: block;
   }
 
-  .waiting #formWrap, .delay #formWrap, .error #formWrap, .delay #wait, .error #wait, .error #delay {
+  .delay #wait, .error #wait, .error #delay {
       display: none;
   }
 
-  #selectEmail > .inputs > li > label {
+  #emailList {
+    border-bottom: 1px dotted #cbcbcb;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+  }
+
+  #emailList > li > label {
     margin: 0;
     padding: 8px 0;
+  }
+
+  /**
+   * Put a nice little persona icon next to an email address. If there is only
+   * one address, always show the light grey icon.
+   */
+  #emailList > li > label,
+  #emailList > li:only-child > label.selected {
+    background-image: url('/dialog/i/persona_watermark_sm.png');
+    background-repeat: no-repeat;
+    background-position: center left;
+    padding: 4px 0 4px 40px;
+    margin: 5px 0;
+  }
+
+  /**
+   * If there is more than one address, show a black icon next to the selected
+   * address.
+   */
+  #emailList > li > label.selected {
+    background-image: url('/dialog/i/persona_watermark_dark_sm.png');
+  }
+
+  #emailList > li input[type=radio] {
+    display: none;
+  }
+
+  /*
+   * The button row should always be against the bottom border of the
+   * dialog. Get rid of its margin.
+   *
+   * The 20px right hand padding is so we can place two buttons side by side at
+   * 50% and use a negative margin to keep them from scrolling over two lines.
+   * Hideous, but flex box is giving us difficulties.
+   */
+  #signIn .buttonrow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: 20px 20px 20px 10px;
+    background-color: #dcdcdc;
+    border-top: 1px solid #bcbcbc;
+    box-shadow: 0px 1px #fff inset;
+    margin: 0;
+  }
+
+  /**
+   * If the button row must be scrolled off screen because of height
+   * constraints, the scrollButtonRow class will be placed on the body
+   */
+  .scrollButtonRow #signIn .buttonrow {
+    bottom: 0;
   }
 
   #signIn .submit > p {
@@ -155,29 +546,44 @@
     margin-top: 0;
   }
 
+  /**
+   * if overflow is set to hidden, then bottom border of the outer box
+   * shadow on the add-email input box is not shown.
+   */
   #content {
-    position: relative;
-    top: 0;
-    bottom: 0;
-  }
-
-  .form_section,
-  .vertical {
-    position: relative;
-    height: auto;
-    width: 100%;
-    max-height: none;
+    position: static;
     overflow: visible;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
   }
 
-  .submit #cancel, #signIn .submit #cancel {
-    line-height: 40px; /* Match the height of the buttons on the right */
-    font-size: 18px;
+  .vertical {
+    position: static;
   }
+
+  .form_section {
+    position: static;
+    width: 100%;
+    font-size: 14px;
+    overflow: visible;
+  }
+
+  /*
+   * Get rid of the margin's set by the desktop CSS
+   */
+  .form_section p {
+    margin-top: 0;
+  }
+
+  /*
+   * The p's within a form_section should have a margin and look pretty.
+   */
+  .form_section > p {
+    margin: 17px 0 10px 0;
+  }
+
+
+  /*
+   * button row anchor, which is also under form_section
+   */
 
   .submit #cancel.emphasize, #signIn .submit #cancel.emphasize {
     line-height: 22px; /* override the default cancel button height for
@@ -209,11 +615,16 @@
     text-align: center;
   }
 
+  /**
+   * The red background of the negative button makes the black text look
+   * terrible. Change it to white and remove the text-shadow for both buttons.
+   */
   #your_computer_content button {
     display: block;
     margin: 0 auto;
+    color: #fff;
+    text-shadow: none;
   }
-
 
   .inputs > li {
     margin-top: 12px;
@@ -225,6 +636,13 @@
   #error.unsupported, #error.cookies_disabled {
     position: static;
     height: 250px;
+  }
+
+  /**
+   * In mobile, the ligthbox shows its OK button at the bottom of the screen.
+   */
+  .lightbox {
+    padding: 5px 5px 80px 5px;
   }
 }
 

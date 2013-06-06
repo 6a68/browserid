@@ -40,7 +40,10 @@
         <a href="#" onclick="$('#contents').hide(); return false;">Close</a>
         <h3>Test Contents, this will be updated and can be safely ignored</h3>
 
-        <div id="rp_info">
+        <div class="rpInfo" id="desktopRpInfo">
+        </div>
+
+        <div class="rpInfo isMobile" id="mobileRpInfo">
         </div>
 
         <div id="page_head">
@@ -53,10 +56,15 @@
           <span class="label email_state">enter email</span>
           <span class="label transition_to_secondary"><strong class="authentication_idp_name"></strong> transition</span>
           <span class="label password_state">enter password</span>
+          <button class="continue" disabled>Next!</button>
         </div>
 
         <div id="controller_head">
           <div id="formWrap">
+              <div class="contents"></div>
+          </div>
+
+          <div id="load">
               <div class="contents"></div>
           </div>
 
@@ -129,6 +137,7 @@
     <script src="/common/js/storage.js"></script>
     <script src="/common/js/xhr.js"></script>
     <script src="/common/js/network.js"></script>
+    <script src="/common/js/crypto-loader.js"></script>
     <script src="/common/js/provisioning.js"></script>
     <script src="/common/js/user.js"></script>
     <script src="/common/js/command.js"></script>
@@ -157,22 +166,20 @@
     <script src="/dialog/js/modules/check_registration.js"></script>
     <script src="/dialog/js/modules/authenticate.js"></script>
     <script src="/dialog/js/modules/required_email.js"></script>
-    <script src="/dialog/js/modules/verify_primary_user.js"></script>
     <script src="/dialog/js/modules/generate_assertion.js"></script>
     <script src="/dialog/js/modules/provision_primary_user.js"></script>
     <script src="/dialog/js/modules/primary_user_provisioned.js"></script>
     <script src="/dialog/js/modules/primary_offline.js"></script>
-    <script src="/dialog/js/modules/upgrade_to_primary_user.js"></script>
+    <script src="/dialog/js/modules/verify_primary_user.js"></script>
     <script src="/dialog/js/modules/is_this_your_computer.js"></script>
     <script src="/dialog/js/modules/set_password.js"></script>
     <script src="/dialog/js/modules/rp_info.js"></script>
+    <script src="/dialog/js/modules/inline_tospp.js"></script>
 
     <script src="/pages/js/page_helpers.js"></script>
     <script src="/pages/js/verify_secondary_address.js"></script>
     <script src="/pages/js/reset_password.js"></script>
-    <script src="/pages/js/forgot.js"></script>
     <script src="/pages/js/manage_account.js"></script>
-    <script src="/pages/js/signin.js"></script>
     <script src="/pages/js/about.js"></script>
 
     <script src="testHelpers/helpers.js"></script>
@@ -192,6 +199,7 @@
     <script src="cases/common/js/storage.js"></script>
     <script src="cases/common/js/xhr.js"></script>
     <script src="cases/common/js/network.js"></script>
+    <script src="cases/common/js/crypto-loader.js"></script>
     <script src="cases/common/js/user.js"></script>
     <script src="cases/common/js/command.js"></script>
     <script src="cases/common/js/history.js"></script>
@@ -212,8 +220,6 @@
     <script src="cases/pages/js/page_helpers.js"></script>
     <script src="cases/pages/js/verify_secondary_address.js"></script>
     <script src="cases/pages/js/reset_password.js"></script>
-    <script src="cases/pages/js/forgot.js"></script>
-    <script src="cases/pages/js/signin.js"></script>
     <script src="cases/pages/js/manage_account.js"></script>
     <script src="cases/pages/js/about.js"></script>
 
@@ -227,18 +233,18 @@
     <script src="cases/dialog/js/modules/check_registration.js"></script>
     <script src="cases/dialog/js/modules/authenticate.js"></script>
     <script src="cases/dialog/js/modules/required_email.js"></script>
-    <script src="cases/dialog/js/modules/verify_primary_user.js"></script>
     <script src="cases/dialog/js/modules/generate_assertion.js"></script>
     <script src="cases/dialog/js/modules/provision_primary_user.js"></script>
     <script src="cases/dialog/js/modules/primary_user_provisioned.js"></script>
     <script src="cases/dialog/js/modules/primary_offline.js"></script>
-    <script src="cases/dialog/js/modules/upgrade_to_primary_user.js"></script>
+    <script src="cases/dialog/js/modules/verify_primary_user.js"></script>
     <script src="cases/dialog/js/modules/is_this_your_computer.js"></script>
     <script src="cases/dialog/js/modules/set_password.js"></script>
     <script src="cases/dialog/js/modules/rp_info.js"></script>
-
+    <script src="cases/dialog/js/modules/inline_tospp.js"></script>
 
     <!-- must go last or all other tests will fail. -->
     <script src="cases/dialog/js/modules/dialog.js"></script>
+
 	</body>
 </html>

@@ -17,20 +17,27 @@ BrowserID.Modules.Authenticate = (function() {
       lastEmail = "",
       addressInfo,
       hints = ["returning","start","addressInfo"],
+      DISABLED_ATTRIBUTE = "disabled",
+      SUBMIT_DISABLED_CLASS = "submit_disabled",
       CONTENTS_SELECTOR = "#formWrap .contents",
       AUTH_FORM_SELECTOR = "#authentication_form",
       EMAIL_SELECTOR = "#authentication_email",
       PASSWORD_SELECTOR = "#authentication_password",
-      FORGOT_PASSWORD_SELECTOR = "#forgotPassword",
+      FORGOT_PASSWORD_SELECTOR = ".forgotPassword",
       RP_NAME_SELECTOR = "#start_rp_name",
       BODY_SELECTOR = "body",
       AUTHENTICATION_CLASS = "authentication",
+      CONTINUE_BUTTON_SELECTOR = ".continue",
       FORM_CLASS = "form",
       AUTHENTICATION_LABEL = "#authentication_form label[for=authentication_email]",
+      ENTER_EMAIL_LABEL = "#authentication_form .label.enter_email",
       EMAIL_LABEL = "#authentication_form .label.email_state",
       TRANSITION_TO_SECONDARY_LABEL = "#authentication_form .label.transition_to_secondary",
       PASSWORD_LABEL = "#authentication_form .label.password_state",
+      CANCEL_PASSWORD_SELECTOR = ".cancelPassword",
       IDP_SELECTOR = "#authentication_form .authentication_idp_name",
+      PERSONA_INTRO_SELECTOR = ".persona_intro",
+      PERSONA_URL = "https://login.persona.org",
       currentHint;
 
   function getEmail() {
@@ -44,23 +51,23 @@ BrowserID.Modules.Authenticate = (function() {
   }
 
   function hasPassword(info) {
+    /*jshint validthis:true*/
     return (info && info.email && info.type === "secondary" &&
-      (info.state === "known" || info.state === "transition_to_secondary" ));
+      (info.state === "known" ||
+       info.state === "transition_to_secondary" ||
+       info.state === "unverified" && this.allowUnverified));
   }
 
   function initialState(info) {
     /*jshint validthis: true*/
     var self=this;
-
-    self.submit = checkEmail;
-    if (hasPassword(info)) {
+    if (hasPassword.call(self, info)) {
       addressInfo = info;
       enterPasswordState.call(self, info.ready);
     }
     else {
       showHint("start");
-      enterEmailState.call(self);
-      complete(info.ready);
+      enterEmailState.call(self, info.ready);
     }
   }
 
@@ -68,61 +75,96 @@ BrowserID.Modules.Authenticate = (function() {
     /*jshint validthis: true*/
     var email = getEmail(),
         self = this;
-
     if (!email) return;
 
-    dom.setAttr(EMAIL_SELECTOR, 'disabled', 'disabled');
+    dom.setAttr(EMAIL_SELECTOR, DISABLED_ATTRIBUTE, DISABLED_ATTRIBUTE);
+    dom.addClass(BODY_SELECTOR, SUBMIT_DISABLED_CLASS);
     if (info && info.type) {
       onAddressInfo(info);
     }
     else {
       showHint("addressInfo");
+      self.renderLoad("load", {
+        title: gettext("Checking with your email provider.")
+      });
+
       user.addressInfo(email, onAddressInfo,
-          self.getErrorDialog(errors.addressInfo));
+        self.getErrorDialog(errors.addressInfo));
     }
 
     function onAddressInfo(info) {
       addressInfo = info;
-      dom.removeAttr(EMAIL_SELECTOR, 'disabled');
+      dom.removeAttr(EMAIL_SELECTOR, DISABLED_ATTRIBUTE);
+      dom.removeClass(BODY_SELECTOR, SUBMIT_DISABLED_CLASS);
 
-      if ("offline" === info.state) {
+      self.hideLoad();
+
+      // We rely on user.addressInfo to tell us when an address that would
+      // normally be a primary is a secondary because of forcedIssuer. If
+      // the user has an address that is normally a primary, but is now using
+      // forcedIssuer, info.state will be either transition_to_secondary or
+      // transition_no_password depending on whether the user has a password.
+
+      // XXX There are 3 nearly identical copies of this. Here, state.js and
+      // pick_email.js. Pick one. Test the shit out of it. Get rid of the
+      // others.
+      if (hasPassword.call(self, info)) {
+        enterPasswordState.call(self);
+      }
+      else if ("offline" === info.state) {
         self.close("primary_offline", info, info);
       }
       else if ("primary" === info.type) {
         self.close("primary_user", info, info);
       }
-      else if (hasPassword(info)) {
-        enterPasswordState.call(self);
-      } else if ("transition_no_password" === info.state) {
-        transitionNoPassword.call(self, info);
-      } else {
-        createSecondaryUser.call(self);
+      else if ("transition_no_password" === info.state) {
+        transitionNoPassword.call(self);
       }
-      done && done();
+      else if (user.isDefaultIssuer()) {
+        createPersonaAccount.call(self);
+      }
+      else {
+        createFxAccount.call(self);
+      }
+      complete(done);
     }
   }
 
-  function createSecondaryUser(callback) {
+  function createPersonaAccount(callback) {
     /*jshint validthis: true*/
     var self=this,
         email = getEmail();
 
     if (email) {
       self.close("new_user", { email: email }, { email: email });
-    } else {
-      complete(callback);
     }
+
+    complete(callback);
   }
 
-  function transitionNoPassword(info) {
+  function transitionNoPassword(callback) {
     /*jshint validthis: true*/
     var self = this;
     var email = getEmail();
 
     if (email) {
-      var data = { email: email, transition_no_password: true };
+      var data = { email: email };
       self.close("transition_no_password", data, data);
     }
+
+    complete(callback);
+  }
+
+  function createFxAccount(callback) {
+    /*jshint validthis: true*/
+    var self=this,
+        email = getEmail();
+
+    if (email) {
+      self.close("new_fxaccount", { email: email }, { email: email });
+    }
+
+    complete(callback);
   }
 
   function authenticate(done) {
@@ -154,32 +196,40 @@ BrowserID.Modules.Authenticate = (function() {
     currentHint = showSelector;
 
     _.each(hints, function(className) {
-      if (className !== showSelector) {
-        dom.hide("." + className + ":not(." + showSelector + ")");
-      }
+      dom.removeClass("body", className);
     });
 
-    $("." + showSelector).fadeIn(ANIMATION_TIME, function() {
-      // Fire a window resize event any time a new section is displayed that
-      // may change the content's innerHeight.  this will cause the "screen
-      // size hacks" to resize the screen appropriately so scroll bars are
-      // displayed when needed.
-      dom.fireEvent(window, "resize");
-      complete(callback);
-    });
+    // Fire a window resize event any time a new section is displayed that
+    // may change the content's innerHeight.  this will cause the "screen
+    // size hacks" to resize the screen appropriately so scroll bars are
+    // displayed when needed.
+    dom.addClass("body", showSelector);
+    dom.fireEvent(window, "resize");
+    complete(callback);
   }
 
-  function enterEmailState() {
+  function enterEmailState(done) {
     /*jshint validthis: true*/
     var self=this;
     addressInfo = null;
-    if (!dom.is(EMAIL_SELECTOR, ":disabled")) {
-      self.publish("enter_email");
-      dom.setInner(AUTHENTICATION_LABEL, dom.getInner(EMAIL_LABEL));
-      self.submit = checkEmail;
-      showHint("start");
-      dom.focus(EMAIL_SELECTOR);
+
+    // If we are already in the enterEmailState, skip out or else we mess with
+    // auto-completion.
+    if (self.submit === checkEmail) return;
+    self.submit = checkEmail;
+
+    // If we are signing in to the Persona main site, do not show
+    // the Persona intro that says "<site> uses Persona to sign you in!"
+    if (user.getOrigin() === PERSONA_URL) {
+      dom.hide(PERSONA_INTRO_SELECTOR);
     }
+
+    dom.setInner(AUTHENTICATION_LABEL, dom.getInner(EMAIL_LABEL));
+    showHint("start");
+    dom.focus(EMAIL_SELECTOR);
+    self.publish("enter_email");
+
+    complete(done);
   }
 
   function enterPasswordState(callback) {
@@ -189,7 +239,7 @@ BrowserID.Modules.Authenticate = (function() {
     dom.setInner(PASSWORD_SELECTOR, "");
 
     self.submit = authenticate;
-    var labelSelector = (addressInfo.state === "known") ? PASSWORD_LABEL : TRANSITION_TO_SECONDARY_LABEL;
+    var labelSelector = (addressInfo.state === "transition_to_secondary") ? TRANSITION_TO_SECONDARY_LABEL : PASSWORD_LABEL;
     if (labelSelector === TRANSITION_TO_SECONDARY_LABEL) {
       dom.setInner(IDP_SELECTOR, helpers.getDomainFromEmail(addressInfo.email));
     }
@@ -221,6 +271,18 @@ BrowserID.Modules.Authenticate = (function() {
       lastEmail = newEmail;
       enterEmailState.call(this);
     }
+
+    /**
+     * The continue button is only available on mobile after the user has
+     * started to type an email address.
+     */
+    if (newEmail) {
+      dom.removeAttr(CONTINUE_BUTTON_SELECTOR, DISABLED_ATTRIBUTE);
+    }
+    else {
+      dom.setAttr(CONTINUE_BUTTON_SELECTOR, DISABLED_ATTRIBUTE,
+        DISABLED_ATTRIBUTE);
+    }
   }
 
   var Module = bid.Modules.PageModule.extend({
@@ -232,6 +294,8 @@ BrowserID.Modules.Authenticate = (function() {
 
       var self=this;
 
+      self.allowUnverified = options.allowUnverified;
+
       dom.addClass(BODY_SELECTOR, AUTHENTICATION_CLASS);
       dom.addClass(BODY_SELECTOR, FORM_CLASS);
       dom.setInner(RP_NAME_SELECTOR, options.siteName);
@@ -239,7 +303,6 @@ BrowserID.Modules.Authenticate = (function() {
 
       currentHint = null;
       dom.setInner(CONTENTS_SELECTOR, "");
-      dom.hide(".returning,.start");
 
       // Since the authentication form is ALWAYS in the DOM, there is no
       // renderForm call which will hide the error, wait or delay screens.
@@ -261,6 +324,7 @@ BrowserID.Modules.Authenticate = (function() {
       // element blurs but it has been updated via autofill.  See issue #406
       self.bind(EMAIL_SELECTOR, "change", emailChange);
       self.click(FORGOT_PASSWORD_SELECTOR, forgotPassword);
+      self.click(CANCEL_PASSWORD_SELECTOR, enterEmailState);
 
       Module.sc.start.call(self, options);
       initialState.call(self, options);
@@ -275,9 +339,12 @@ BrowserID.Modules.Authenticate = (function() {
     // BEGIN TESTING API
     ,
     checkEmail: checkEmail,
-    createUser: createSecondaryUser,
+    createUser: createPersonaAccount,
+    createFxAccount: createFxAccount,
+    transitionNoPassword: transitionNoPassword,
     authenticate: authenticate,
-    forgotPassword: forgotPassword
+    forgotPassword: forgotPassword,
+    emailChange: emailChange
     // END TESTING API
   });
 
