@@ -16,7 +16,7 @@ testSetup = require('../lib/test-setup.js'),
 runner = require('../lib/runner.js'),
 timeouts = require('../lib/timeouts.js');
 
-var browser, primary, secondary;
+var browser, testIdp, primary, secondary;
 /*
 - setup: create account with 2 emails (primary and a secondary on same account) on persona.org, then:
 - verify that no email is selected on first login to a site
@@ -27,14 +27,18 @@ var browser, primary, secondary;
 
 runner.run(module, {
   "setup": function(done) {
-    testSetup.setup({browsers: 1, restmails: 1, eyedeemails:1}, function(err, fix) {
+    testSetup.setup({browsers: 1, restmails: 1, testidps:1}, function(err, fix) {
       if (fix) {
         browser = fix.browsers[0];
-        primary = fix.eyedeemails[0];
+        testIdp = fix.testidps[0];
+        primary = testIdp.getRandomEmail();
         secondary = fix.restmails[0];
       }
       done(err);
     });
+  },
+  "enable primary support": function(done) {
+    testIdp.enableSupport(done);
   },
   "start browser session": function(done) {
     testSetup.newBrowserSession(browser, done);
@@ -43,16 +47,15 @@ runner.run(module, {
     browser.chain({onError: done})
       .get(persona_urls['persona'])
       .wclick(CSS['persona.org'].header.signIn)
-      .wtype(CSS['persona.org'].signInForm.email, primary)
-      .wclick(CSS['persona.org'].signInForm.nextButton)
-      .wclick(CSS['persona.org'].signInForm.verifyPrimaryButton)
-      .wwin(CSS['persona.org'].verifyPrimaryDialogName)
-      .wtype(CSS['eyedee.me'].newPassword, primary.split('@')[0])
-      .wclick(CSS['eyedee.me'].createAccountButton)
+      .wwin(CSS['dialog'].windowName)
+      .wtype(CSS['dialog'].emailInput, primary)
+      .wclick(CSS['dialog'].newEmailNextButton)
+      .wclick(CSS['dialog'].verifyWithPrimaryButton)
+      .wclick(CSS['testidp.org'].loginButton)
       .wwin()
       .wtext(CSS['persona.org'].accountEmail, function(err, text) {
         done(err || assert.equal(primary.toLowerCase(), text)); // note
-      })
+      });
   },
   "go to 123done and add a secondary acct": function(done) {
     browser.chain({onError: done})
@@ -81,7 +84,7 @@ runner.run(module, {
     browser.chain({onError: done})
       .get(persona_urls['myfavoritebeer'])
       .wclick(CSS['myfavoritebeer.org'].signinButton)
-      .wwin(CSS['persona.org'].windowName, done)
+      .wwin(CSS['persona.org'].windowName, done);
   },
   "check first radio is not selected":function(done, el) {
     browser.wgetAttribute(CSS['dialog'].firstEmail, 'selected', function(err, val) {

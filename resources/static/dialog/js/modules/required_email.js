@@ -14,7 +14,9 @@ BrowserID.Modules.RequiredEmail = (function() {
       email,
       auth_level,
       primaryInfo,
-      secondaryAuth;
+      secondaryAuth,
+      CANCEL_SELECTOR = "#cancel",
+      FORGOT_PASSWORD_SELECTOR = ".forgotPassword";
 
   function closePrimaryUser(callback) {
     /*jshint validthis:true*/
@@ -121,7 +123,6 @@ BrowserID.Modules.RequiredEmail = (function() {
         // a user could not be looking at stale data and/or authenticate as
         // somebody else.
         var storedEmailInfo = user.getStoredEmailKeypair(email);
-
         user.addressInfo(email, function(info) {
           if(storedEmailInfo && info.type === "secondary") {
             // secondary user, show the password field if they are not
@@ -230,8 +231,8 @@ BrowserID.Modules.RequiredEmail = (function() {
 
         self.click("#sign_in", signIn);
         self.click("#verify_address", verifyAddress);
-        self.click("#forgotPassword", forgotPassword);
-        self.click("#cancel", cancel);
+        self.click(FORGOT_PASSWORD_SELECTOR, forgotPassword);
+        self.click(CANCEL_SELECTOR, cancel);
       }
 
       RequiredEmail.sc.start.call(self, options);

@@ -70,6 +70,18 @@ h2 {
     font-size: 20px;
 }
 
+.form_section h2 {
+  font-size: 18px;
+}
+
+.form_section h2.deemphasize {
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 18px;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
 h3 {
     font-size: 18px;
 }
@@ -119,16 +131,6 @@ label.selectable {
     cursor: pointer;
 }
 
-section {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    z-index: 0;
-}
-
 .table {
     display: table;
     width: 100%;
@@ -138,12 +140,6 @@ section {
 .table .vertical {
     display: table-cell;
     vertical-align: middle;
-}
-
-section > .contents {
-    display: table-cell;
-    vertical-align: middle;
-    height: 250px;
 }
 
 .form_section {
@@ -202,8 +198,36 @@ section > .contents {
     _height: 250px;
 }
 
-#wait, #error, #delay {
+
+section {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+
+section > .contents {
+    display: table-cell;
+    vertical-align: middle;
+    height: 250px;
+}
+
+/**
+ * .message_screen are sections that are overlayed on top of the main content.
+ * Things like the loading, delay, error and wait screens.
+ */
+.message_screen {
     z-index: -1;
+    /* Since all of the screens are overlayed on top of each other
+     * and since the main screen does not have styles of its own (because of
+     * header and footer styles), use opacity to control whether a screen is
+     * shown or not.
+     */
     -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
     opacity: 0;
 
@@ -228,31 +252,67 @@ section > .contents {
     transition-delay: 0.5s;
 }
 
+.message_screen .vertical {
+    padding: 0 20px;
+}
 
-.waiting #wait {
+.message_screen img {
+  display: block;
+  margin: 0 auto 30px;
+}
+
+#load {
+  background: #fff;
+  /*
+   * We want the loading screen to take up the entire screen, not just
+   * within the borders of the content
+   */
+  position: fixed;
+  text-align: center;
+}
+
+.waiting #wait, .delay #delay, .error #error, .loading #load {
     display: block;
-    z-index: 1;
     -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
     opacity: 1;
+}
+
+/**
+ * If the error or delay screens are shown, hide the load screen. If
+ * not hidden, the load screen causes a white top and bottom margin.
+ */
+.error #load, .delay #load {
+  opacity: 0;
+  -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+  z-index: -1;
+}
+
+.waiting #wait {
+    z-index: 5;
+}
+
+.loading #load {
+    z-index: 10;
+    /*
+     * Do NOT display the "loading" screen on desktop. Too many people
+     * think it is jarring.
+     */
+    display: none;
 }
 
 .delay #delay {
-    display: block;
-    z-index: 2;
-    -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
-    opacity: 1;
+    z-index: 20;
 }
 
 .error #error, #error.unsupported, #error.cookies_disabled {
-    display: block;
-    z-index: 3;
-    -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
-    opacity: 1;
+    z-index: 30;
 }
 
 #error.unsupported {
   padding: 20px 0;
 }
+
+
 
 .unsupported {
   /*
@@ -275,10 +335,6 @@ section > .contents {
 
 #error .lighter {
     color: #777;
-}
-
-#wait .vertical, #error .vertical, #delay .vertical {
-    padding: 0 20px;
 }
 
 
@@ -308,7 +364,7 @@ section > .contents {
     background-color: transparent;
 }
 
-#favicon {
+.favicon {
     position: absolute;
     left: 400px;
     top: 0;
@@ -318,34 +374,34 @@ section > .contents {
     z-index: 10;
 }
 
-#favicon strong {
+.favicon strong {
     font-size: 18px;
     line-height: 24px;
     text-shadow: 0 1px #fff;
 }
 
-#favicon img {
+.favicon img {
     display: block;
     margin: 0 auto;
     max-height: 100px;
     max-width: 100px;
 }
 
-#favicon h2, #favicon h3 {
+.favicon h2, .favicon h3 {
     line-height: 1.2em;
     margin: 10px 0 0 0;
 }
 
-#favicon h2 {
+.favicon h2 {
     margin: 10px 0 0 0;
 }
 
-#favicon h3 {
+.favicon h3 {
     font-size: 16px;
     margin-top: 0;
 }
 
-#favicon .vertical {
+.favicon .vertical {
     display: table-cell;
     text-align: center;
     max-width: 0;
@@ -361,29 +417,26 @@ div#required_email {
   margin-top: 8px;
 }
 
-.inputs > li > label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#selectEmail > .inputs > li {
+#emailList > li {
     margin: 0;
 }
 
-#selectEmail > .inputs > li > label {
+#emailList > li > label {
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding: 3px 1px;
     white-space: nowrap;
 }
 
-#selectEmail > .inputs > li > label.preselected {
+#emailList > li > label.preselected {
     font-weight: bold;
 }
 
-#selectEmail > .inputs > li:only-child > label.selectable {
+#emailList > li:only-child > label.selectable {
     cursor: default;
 }
 
-#selectEmail > .inputs > li:only-child input[type=radio] {
+#emailList > li:only-child input[type=radio] {
     display: none;
 }
 
@@ -417,6 +470,7 @@ a.emphasize {
   border-radius: 2px;
   color: #484848;
   font-size: 11px;
+  margin-bottom: 6px;
   padding: 0 5px;
   display: inline-block;
   line-height: 22px;
@@ -455,8 +509,26 @@ a.emphasize:active {
     margin: 0 0 0 5px;
 }
 
-.newuser,
-.returning {
+/**
+ * Start off hiding all of the state specific elements
+ */
+.isReturning, .isStart, .isAddressInfo, .isMobile {
+  display: none;
+}
+
+
+/**
+* These handle the authentication page states, but do not take into account
+* any elements that have the .isMobile class.
+*/
+.returning .isReturning, .start .isStart, .addressInfo .isAddressInfo {
+  display: block;
+}
+
+/**
+ * Re-disable any elements that have the .isMobile class.
+ */
+.newuser, .isReturning.isMobile, .isStart.isMobile, .isAddressInfo.isMobile {
     display: none;
 }
 
@@ -497,3 +569,52 @@ a.emphasize:active {
 #authentication_form span.label {
   display: none;
 }
+
+/**
+ * The lightbox shows TOS/PP agreements.
+ */
+.lightbox {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  /**
+   * The width and height are needed for webkit browsers
+   * to size the iframe properly
+   */
+  width: 100%;
+  height: 100%;
+  z-index: 900;
+  background-color: #111;
+  background-color: rgba(0,0,0,.9);
+  padding: 50px 60px 20px 60px;
+}
+
+.lightbox .contents {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  border: 2px solid grey;
+  background-color: #fff;
+  border: 0;
+}
+
+.lightbox .close {
+  margin-top: -35px;
+  display: block;
+  color: red;
+  position: absolute;
+  right: 10px;
+  background: url("/common/i/closex.png") no-repeat scroll right center #000;
+  background: url("/common/i/closex.png") no-repeat scroll right center rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  padding: 5px 28px 5px 5px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-shadow: none;
+  color: #ccc;
+}
+

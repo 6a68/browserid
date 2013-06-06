@@ -8,6 +8,7 @@
       testHelpers = bid.TestHelpers,
       network = bid.Network,
       storage = bid.Storage,
+      errors = bid.Errors,
       model = bid.Models.InteractionData,
       xhr = bid.Mocks.xhr,
       mediator = bid.Mediator,
@@ -441,6 +442,21 @@
     });
   });
 
+  test("start_time does not cause blowup if sampling disabled", function() {
+    createController(true, {
+      samplingEnabled: false
+    });
+
+    // set a fake startTime to simulate the dialog load delay. This should make
+    // every event be offset by at least 1000 ms.
+    var startTime = new Date().getTime() - 1000;
+    try {
+      controller.addEvent("start_time", startTime);
+    } catch(e) {
+      ok(false);
+    }
+  });
+
   asyncTest("start_time adjusts date of already added events", function() {
     // create a date that is one second ago that will be used to update the
     // start_time.
@@ -486,6 +502,21 @@
     equal(xhrEvent[0], "xhr_complete.GET/wsapi/user_creation_status");
 
     start();
+  });
+
+  test("error_screen formats an error object", function() {
+    createController();
+    controller.addEvent("error_screen", {
+      action: errors.addressInfo,
+      network: {
+        status: 503
+      }
+    });
+
+    var eventStream = controller.getCurrentEventStream();
+    var errorEvent = eventStream.pop();
+
+    equal(errorEvent[0], "screen.error.addressInfo.503");
   });
 
   asyncTest("Consecutive xhr_complete messages for the same URL only have one entry", function() {

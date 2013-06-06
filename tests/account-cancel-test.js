@@ -83,7 +83,9 @@ suite.addBatch({
       assert.strictEqual(r.headers['content-type'].indexOf('application/json'), 0);
     },
     "returns json string with { success: true }": function (err, r) {
-      assert.strictEqual(JSON.parse(r.body).success, true);
+      try {
+        assert.strictEqual(JSON.parse(r.body).success, true);
+      } catch (e) { assert.fail("Couldn't parse JSON: " + r.body); }
     },
   },
 });
@@ -91,7 +93,7 @@ suite.addBatch({
 suite.addBatch({
   "the test user": {
     topic: wsapi.get('/wsapi/address_info', {
-        email: TEST_EMAIL,
+        email: TEST_EMAIL
     }),
     "is not a known user after account was cancelled": function(err, r) {
       assert.strictEqual(r.code, 200);

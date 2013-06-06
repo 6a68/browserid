@@ -17,7 +17,7 @@ testSetup = require('../lib/test-setup.js'),
 timeouts = require('../lib/timeouts.js');
 
 var pcss = CSS['persona.org'],
-  browser, secondBrowser, eyedeemail, theEmail;
+  browser, secondBrowser, primaryEmail, theEmail, testIdp;
 
 // all the stuff common between primary and secondary tests:
 // go to persona.org, click sign in, enter email, click next.
@@ -25,17 +25,19 @@ var startup = function(b, email, cb) {
   b.chain({onError: cb})
     .get(persona_urls['persona'])
     .wclick(pcss.header.signIn)
-    .wtype(pcss.signInForm.email, email)
-    .wclick(pcss.signInForm.nextButton, cb);
+    .wwin(CSS['dialog'].windowName)
+    .wtype(CSS['dialog'].emailInput, email)
+    .wclick(CSS['dialog'].newEmailNextButton, cb);
 }
 
 var setup = {
   "setup stuff": function(done) {
-    testSetup.setup({browsers: 2, eyedeemails: 1, restmails: 1}, function(err, fixtures) {
+    testSetup.setup({browsers: 2, testidps: 1, restmails: 1}, function(err, fixtures) {
       if (fixtures) {
         browser = fixtures.browsers[0];
         secondBrowser = fixtures.browsers[1];
-        eyedeemail = fixtures.eyedeemails[0];
+        testIdp = fixtures.testidps[0];
+        primaryEmail = testIdp.getRandomEmail();
         theEmail = fixtures.restmails[0];
       }
       done(err)
@@ -44,28 +46,33 @@ var setup = {
 };
 
 var primaryTest = {
+  "enable primary support": function(done) {
+    testIdp.enableSupport(done);
+  },
+
   "setup browser": function(done) {
     testSetup.newBrowserSession(browser, done);
   },
-  "go to personaorg, click sign in, type eyedeeme addy, click next": function(done) {
-    startup(browser, eyedeemail, done)
+
+  "go to personaorg, click sign in, type testidp addy, click next": function(done) {
+    startup(browser, primaryEmail, done)
   },
-  "click 'verify primary' to pop eyedeeme dialog": function(done) {
-    browser.wclick(pcss.signInForm.verifyPrimaryButton, done);
+  "click 'verify primary' to open testidp": function(done) {
+    browser.wclick(CSS['dialog'].verifyWithPrimaryButton, done);
   },
-  "switch to eyedeeme dialog, submit password, click ok": function(done) {
+  "switch to testidp dialog, submit password, click ok": function(done) {
     browser.chain({onError: done})
-      .wwin(pcss.verifyPrimaryDialogName)
-      .wtype(CSS['eyedee.me'].newPassword, eyedeemail.split('@')[0])
-      .wclick(CSS['eyedee.me'].createAccountButton, done);
+      .wclick(CSS['testidp.org'].loginButton, done);
   },
   "switch back to main window, look for the email in acct mgr, then log out": function(done) {
     browser.chain({onError: done})
       .wwin()
       .wtext(pcss.accountEmail, function(err, text) {
-        done(err || assert.equal(eyedeemail.toLowerCase(), text)); // note, had to lower case it.
-      })
-      .wclick(pcss.header.signOut, done);
+        done(err || assert.equal(primaryEmail.toLowerCase(), text)); // note, had to lower case it.
+      });
+  },
+  "sign out": function(done) {
+    browser.wclick(pcss.header.signOut, done);
   },
   "shut down primary test": function(done) {
     browser.quit(done);
@@ -82,19 +89,18 @@ var secondaryTest = {
   },
   "enter password and click verify": function(done) {
     secondBrowser.chain({onError: done})
-      .wtype(pcss.signInForm.password, theEmail.split('@')[0])
-      .wtype(pcss.signInForm.verifyPassword, theEmail.split('@')[0])
-      .wclick(pcss.signInForm.verifyEmailButton, done);
+      .wtype(CSS['dialog'].choosePassword, theEmail.split('@')[0])
+      .wtype(CSS['dialog'].verifyPassword, theEmail.split('@')[0])
+      .wclick(CSS['dialog'].createUserButton, done);
   },
   "get verification link": function(done) {
     restmail.getVerificationLink({email: theEmail}, done);
   },
-  // if we asserted against contents of #congrats message, our tests would
-  // break if we ran them against a non-English deploy of the site
-  "open verification link and verify we see congrats node": function(done, token, link) {
+  "open verification link and verify we are redirected to the manage page": function(done, token, link) {
     secondBrowser.chain({onError: done})
+      .wwin()
       .get(link)
-      .wfind(pcss.congratsMessage, done);
+      .wfind(pcss.accountManagerHeader, done);
   },
   "shut down secondary test": function(done) {
     secondBrowser.quit(done);
@@ -107,5 +113,5 @@ runner.run(
   [setup, secondaryTest, primaryTest],
   {
     suiteName: path.basename(__filename),
-    cleanup: function(done) { testSetup.teardown(done) }
+    cleanup: function(done) { testSetup.teardown(done); }
   });

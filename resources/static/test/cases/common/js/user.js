@@ -696,11 +696,24 @@
     }, testHelpers.unexpectedFailure);
   });
 
-  asyncTest("authenticate with valid credentials, also syncs email with server", function() {
+  asyncTest("authenticate with valid normal credentials, syncs email with server", function() {
     lib.authenticate(TEST_EMAIL, "testuser", function(authenticated) {
       equal(true, authenticated, "we are authenticated!");
       var emails = lib.getStoredEmailKeypairs();
       equal(_.size(emails) > 0, true, "emails have been synced to server");
+      // user is not authenticating with a forever session, they should be
+      // still be asked whether this is their computer.
+      equal(storage.usersComputer.confirmed(lib.userid()), false);
+      start();
+    }, testHelpers.unexpectedXHRFailure);
+  });
+
+  asyncTest("authenticate with valid forever session credentials", function() {
+    xhr.useResult("foreverSession");
+    lib.authenticate(TEST_EMAIL, "testuser", function(authenticated) {
+      // user is authenticating with a forever session, they should be marked
+      // as "confirmed"
+      equal(storage.usersComputer.confirmed(lib.userid()), true);
       start();
     }, testHelpers.unexpectedXHRFailure);
   });
@@ -724,6 +737,16 @@
       equal(true, authenticated, "we are authenticated!");
       var emails = lib.getStoredEmailKeypairs();
       equal(_.size(emails) > 0, true, "emails have been synced to server");
+      equal(storage.usersComputer.confirmed(lib.userid()), false);
+      start();
+    }, testHelpers.unexpectedXHRFailure);
+  });
+
+  asyncTest("authenticateWithAssertion with valid assertion and a forever session", function() {
+    xhr.useResult("foreverSession");
+    lib.authenticateWithAssertion(TEST_EMAIL, "test_assertion", function(authenticated) {
+      equal(true, authenticated, "we are authenticated!");
+      equal(storage.usersComputer.confirmed(lib.userid()), true);
       start();
     }, testHelpers.unexpectedXHRFailure);
   });
@@ -868,8 +891,8 @@
   });
 
   asyncTest("syncEmailKeypair with successful sync", function() {
-    lib.syncEmailKeypair("testemail@testemail.com", function(keypair) {
-      var identity = lib.getStoredEmailKeypair("testemail@testemail.com");
+    lib.syncEmailKeypair("testuser@testuser.com", function(keypair) {
+      var identity = lib.getStoredEmailKeypair("testuser@testuser.com");
 
       ok(identity, "we have an identity");
       ok(identity.priv, "a private key is on the identity");
@@ -883,10 +906,10 @@
   asyncTest("syncEmailKeypair with invalid sync", function() {
     xhr.useResult("invalid");
     lib.syncEmailKeypair(
-      "testemail@testemail.com",
+      "testuser@testuser.com",
       testHelpers.unexpectedSuccess,
       function() {
-        var identity = lib.getStoredEmailKeypair("testemail@testemail.com");
+        var identity = lib.getStoredEmailKeypair("testuser@testuser.com");
         equal(typeof identity, "undefined", "Invalid email is not synced");
 
         start();
@@ -895,7 +918,7 @@
   });
 
   asyncTest("syncEmailKeypair with XHR failure", function() {
-    failureCheck(lib.syncEmailKeypair, "testemail@testemail.com");
+    failureCheck(lib.syncEmailKeypair, "testuser@testuser.com");
   });
 
 
@@ -1022,6 +1045,8 @@
       lib.getAssertion(TEST_EMAIL, lib.getOrigin(), function onSuccess(assertion) {
         testAssertion(assertion, start);
         equal(storage.site.get(testOrigin, "email"), TEST_EMAIL, "email address was persisted");
+        // issuer is used when getting a silent assertion.
+        equal(storage.site.get(testOrigin, "issuer"), "default", "issuer was persisted");
       }, testHelpers.unexpectedXHRFailure);
     }, testHelpers.unexpectedXHRFailure);
   });
@@ -1054,10 +1079,10 @@
   asyncTest("getAssertion with known primary email, expired cert, user not authenticated with IdP - expect null assertion", function() {
     xhr.useResult("primary");
     provisioning.setStatus(provisioning.NOT_AUTHENTICATED);
-    storage.addEmail("unregistered@testuser.com", { type: "primary" });
+    storage.addEmail("registered@testuser.com", { type: "primary" });
 
     lib.getAssertion(
-      "unregistered@testuser.com",
+      "registered@testuser.com",
       lib.getOrigin(),
       function(assertion) {
         equal(assertion, null, "user must authenticate with IdP, no assertion");
@@ -1087,7 +1112,7 @@
     xhr.setContextInfo("auth_level", "password");
 
     lib.syncEmailKeypair(LOGGED_IN_EMAIL, function() {
-      storage.setLoggedIn(lib.getOrigin(), LOGGED_IN_EMAIL);
+      storage.site.set(lib.getOrigin(), "logged_in", LOGGED_IN_EMAIL);
       lib.getSilentAssertion(LOGGED_IN_EMAIL, function(email, assertion) {
         equal(email, LOGGED_IN_EMAIL, "correct email");
         strictEqual(assertion, null, "correct assertion");
@@ -1102,7 +1127,7 @@
     var REQUESTED_EMAIL = "requested@testuser.com";
 
     lib.syncEmailKeypair(LOGGED_IN_EMAIL, function() {
-      storage.setLoggedIn(lib.getOrigin(), LOGGED_IN_EMAIL);
+      storage.site.set(lib.getOrigin(), "logged_in", LOGGED_IN_EMAIL);
       lib.getSilentAssertion(REQUESTED_EMAIL, function(email, assertion) {
         equal(email, LOGGED_IN_EMAIL, "correct email");
         testAssertion(assertion, start);
@@ -1371,6 +1396,41 @@
       lib.checkAuthentication(function(auth_level) {
         equal(auth_level, "assertion");
         start();
+      }, testHelpers.unexpectedXHRFailure);
+    }, testHelpers.unexpectedXHRFailure);
+  });
+
+
+  test("getIssuer/isDefaultIssuer with default issuer", function() {
+    equal(lib.getIssuer(), "default");
+    equal(lib.isDefaultIssuer(), true);
+  });
+
+  test("setIssuer/getIssuer/isDefaultIssuer with updated issuer", function() {
+    var issuer = "fxos.personatest.org";
+    lib.setIssuer(issuer);
+    equal(lib.getIssuer(), issuer);
+    equal(lib.isDefaultIssuer(), false);
+  });
+
+  asyncTest("createSecondaryUser with allowUnverified " +
+                " should update address cache", function() {
+    lib.setAllowUnverified(true);
+    // This is an initial call to addressInfo to prime the cache.
+    lib.addressInfo(TEST_EMAIL, function(addressInfo) {
+      xhr.useResult("unverified");
+
+      lib.createSecondaryUser(TEST_EMAIL, "password", function(status) {
+        equal(status.success, true);
+
+        // If creating an unverified account, the user will not go
+        // through the verification flow while the dialog is open and the
+        // cache will not be updated accordingly. Update the cache now.
+        xhr.useResult("valid");
+        lib.addressInfo(TEST_EMAIL, function(addressInfo) {
+          equal(addressInfo.state, "unverified");
+          start();
+        }, testHelpers.unexpectedXHRFailure);
       }, testHelpers.unexpectedXHRFailure);
     }, testHelpers.unexpectedXHRFailure);
   });

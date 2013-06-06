@@ -44,6 +44,24 @@ BrowserID.Modules.Dialog = (function() {
       return;
     }
 
+    // returning from the primary verification flow, we were native before, we
+    // are native now. This prevents the UI from trying to establish a channel
+    // back to the RP.
+    if (win.sessionStorage.primaryVerificationFlow) {
+      try {
+        var info = JSON.parse(win.sessionStorage.primaryVerificationFlow);
+        if (info.native) return;
+      } catch(e) {
+        self.renderError("error", {
+          action: {
+            title: "error in sessionStorage",
+            message: "could not decode sessionStorage.primaryVerificationFlow: "
+                          + String(e)
+          }
+        });
+      }
+    }
+
     // next, we see if the caller intends to call native APIs
     if (hash === "#NATIVE" || hash === "#INTERNAL") {
       // don't do winchan, let it be.
@@ -122,6 +140,20 @@ BrowserID.Modules.Dialog = (function() {
     return returnTo;
   }
 
+  function fixupIssuer(issuer) {
+    // An issuer should not have a scheme on the front of it.
+    // The URL parser requires a scheme. Prepend the scheme to do the
+    // verification.
+    /*jshint newcap:false*/
+    var u = URLParse("http://" + issuer);
+    if (u.host !== issuer) {
+      var encodedURI = encodeURI(u.validate().normalize().toString());
+      throw new Error("invalid issuer: " + encodedURI);
+    }
+
+    return issuer;
+  }
+
   function validateRPAPI(rpAPI) {
     var VALID_RP_API_VALUES = [
       "watch_without_onready",
@@ -145,6 +177,13 @@ BrowserID.Modules.Dialog = (function() {
     return parsedTime;
   }
 
+  function validateBoolean(bool, name) {
+    if (typeof bool !== "boolean") {
+      throw new Error("invalid value for " + name + ": " + bool);
+    }
+
+    return bool;
+  }
 
   var Dialog = bid.Modules.PageModule.extend({
     start: function(options) {
@@ -257,8 +296,34 @@ BrowserID.Modules.Dialog = (function() {
           user.setReturnTo(returnTo);
         }
 
+        // forceAuthentication is used by the Marketplace to ensure that the
+        // user knows the password to this account. We ignore any active session.
+        if (paramsFromRP.experimental_forceAuthentication) {
+          params.forceAuthentication = validateBoolean(
+              paramsFromRP.experimental_forceAuthentication,
+              "experimental_forceAuthentication");
+        }
+
+        // forceIsuser is used by the Marketplace to disable primary support
+        // and replace fxos.login.persona.org as the issuer of certs
+        if (paramsFromRP.experimental_forceIssuer) {
+          params.forceIssuer =
+              fixupIssuer(paramsFromRP.experimental_forceIssuer);
+        }
+
+        // allowUnverified means that the user doesn't need to have
+        // verified their email address in order to send an assertion.
+        // if the user *has* verified, it will be a verified assertion.
+        if (paramsFromRP.experimental_allowUnverified) {
+          params.allowUnverified = validateBoolean(
+              paramsFromRP.experimental_allowUnverified,
+              "experimental_allowUnverified");
+        }
+
         if (hash.indexOf("#AUTH_RETURN") === 0) {
-          var primaryParams = JSON.parse(win.sessionStorage.primaryVerificationFlow);
+          var primaryParams =
+              JSON.parse(win.sessionStorage.primaryVerificationFlow);
+
           params.email = primaryParams.email;
           params.add = primaryParams.add;
           params.type = "primary";

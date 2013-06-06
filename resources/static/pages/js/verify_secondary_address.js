@@ -16,7 +16,6 @@ BrowserID.verifySecondaryAddress = (function() {
       complete = helpers.complete,
       validation = bid.Validation,
       tooltip = bid.Tooltip,
-      REDIRECT_SECONDS = 5,
       sc;
 
   function showRegistrationInfo(info) {
@@ -25,33 +24,9 @@ BrowserID.verifySecondaryAddress = (function() {
     dom.setInner("#email", info.email);
     dom.setInner(".website", self.redirectTo);
 
-    if (self.uiTimeoutID) self.uiTimeoutID = clearTimeout(self.uiTimeoutID);
-    updateRedirectTimeout.call(this);
-
     if (info.returnTo) {
       dom.show(".siteinfo");
     }
-  }
-
-  function updateRedirectTimeout() {
-    /*jshint validthis: true*/
-    dom.setInner("#redirectTimeout", this.secondsRemaining);
-  }
-
-  function countdownTimeout(onComplete) {
-    /*jshint validthis: true*/
-    var self=this;
-    function checkTime() {
-      if (self.secondsRemaining > 0) {
-        updateRedirectTimeout.call(self);
-        self.secondsRemaining--;
-        self.uiTimeoutID = setTimeout(checkTime.bind(self), 1000);
-      } else {
-        complete(onComplete);
-      }
-    }
-
-    checkTime();
   }
 
   function submit(oncomplete) {
@@ -65,22 +40,18 @@ BrowserID.verifySecondaryAddress = (function() {
         dom.addClass("body", "complete");
 
         var verified = info.valid;
-
         if (verified) {
-          pageHelpers.replaceFormWithNotice("#congrats", function() {
-            // set the loggedIn status for the site.  This allows us to get
-            // a silent assertion without relying on the dialog to set the
-            // loggedIn status for the domain.  This is useful when the user
-            // closes the dialog OR if redirection happens before the dialog
-            // has had a chance to finish its business.
-            /*jshint newcap:false*/
-            storage.setLoggedIn(URLParse(self.redirectTo).originOnly(), self.email);
+          // set the loggedIn status for the site.  This allows us to get
+          // a silent assertion without relying on the dialog to set the
+          // loggedIn status for the domain.  This is useful when the user
+          // closes the dialog OR if redirection happens before the dialog
+          // has had a chance to finish its business.
+          /*jshint newcap:false*/
+          storage.site.set(URLParse(self.redirectTo).originOnly(),
+              "logged_in", self.email);
 
-            countdownTimeout.call(self, function() {
-              self.doc.location = self.redirectTo;
-              complete(oncomplete, verified);
-            });
-          });
+          self.doc.location = self.redirectTo;
+          complete(oncomplete, verified);
         }
         else {
           pageHelpers.showFailure(errors.cannotComplete, info, oncomplete);
@@ -109,12 +80,14 @@ BrowserID.verifySecondaryAddress = (function() {
         self.email = info.email;
         showRegistrationInfo.call(self, info);
         self.mustAuth = info.must_auth;
+
         if (self.mustAuth) {
           // These are users who are authenticating in a different browser or
           // session than the initiator.
           dom.addClass("body", "enter_password");
           dom.focus("input[autofocus]");
           complete(oncomplete, true);
+          dom.show("body");
         }
         else {
           // Easy case where user is in same browser and same session, just
@@ -125,6 +98,7 @@ BrowserID.verifySecondaryAddress = (function() {
       else {
         // renderError is used directly instead of pageHelpers.showFailure
         // because showFailure hides the title in the extended info.
+        dom.show("body");
         self.renderError("error", errors.cannotConfirm);
         complete(oncomplete, false);
       }
@@ -139,13 +113,6 @@ BrowserID.verifySecondaryAddress = (function() {
       self.token = options.token;
       self.verifyFunction = options.verifyFunction;
       self.doc = options.document || document;
-
-      self.redirectTimeout = options.redirectTimeout;
-      if (typeof self.redirectTimeout === "undefined") {
-        self.redirectTimeout = REDIRECT_SECONDS * 1000;
-      }
-      self.secondsRemaining = self.redirectTimeout / 1000;
-
 
       startVerification.call(self, options.ready);
 

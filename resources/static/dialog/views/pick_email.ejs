@@ -5,6 +5,8 @@
 
 
   <div id="selectEmail" class="form_section">
+      <h2 class="isMobile"><%= gettext('Sign in with Persona') %></h2>
+
       <p>
         <%= gettext('Sign in as...') %>
       </p>
@@ -12,7 +14,7 @@
       <ul class="inputs" id="emailList">
           <% _.each(identities, function(item, index) { var emailAddress = item.address, id = "email_" + index; %>
               <li>
-                  <label for="<%= id %>" class="<% if (emailAddress === siteEmail) { %> preselected<% } %> selectable" title="<%= emailAddress %>" >
+                  <label for="<%= id %>" class="<% if (emailAddress === siteEmail) { %> preselected selected<% } %> selectable" title="<%= emailAddress %>" >
                     <input type="radio" name="email" id="<%= id %>" value="<%= emailAddress %>"
                         <% if (emailAddress === siteEmail || identities.length === 1) { %> checked="checked" <% } %>
                       />
@@ -26,11 +28,31 @@
         <%= gettext('Please choose an email address.') %>
       </div>
 
-      <a id="useNewEmail" class="emphasize" href="#"><%= gettext('Add another email address') %></a>
-      <a id="thisIsNotMe" class="emphasize" href="#"><%= gettext('This is not me') %></a>
+      <a class="isDesktop emphasize useNewEmail" href="#"><%= gettext('Add another email address') %></a>
+      <a class="isDesktop emphasize thisIsNotMe" href="#"><%= gettext('This is not me') %></a>
 
+      <p class="isMobile">
+        <a class="useNewEmail" href="#"><%= gettext('Add an email address') %></a>
+      </p>
 
-      <p class="submit add cf">
+      <p class="isMobile">
+        <a class="thisIsNotMe" href="#"><%= gettext('This is not me') %></a>
+      </p>
+
+      <% if (privacyPolicy && termsOfService) { %>
+        <p class="tospp isMobile">
+          <%- format(gettext("By proceeding, you agree to %(site)s's <a %(terms)s>Terms</a> and <a %(privacy)s>Privacy Policy</a>."),
+                     {
+                       terms: 'href="' + termsOfService + '" class="rp_tos" target="_blank" tabindex="10"',
+                       privacy: 'href="' + privacyPolicy + '" class="rp_pp" target="_blank" tabindex="10"',
+                       site: siteName || hostname
+                     })
+          %>
+         </p>
+      <% } %>
+
+      <p class="submit add cf buttonrow">
         <button id="signInButton"><%= gettext('sign in') %></button>
+        <a href="#" class="cancelDialog isMobile"><%= gettext('cancel') %></a>
       </p>
   </div>

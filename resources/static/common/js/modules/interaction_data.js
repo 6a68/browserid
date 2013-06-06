@@ -29,6 +29,7 @@ BrowserID.Modules.InteractionData = (function() {
       model = bid.Models.InteractionData,
       user = bid.User,
       storage = bid.Storage,
+      errors = bid.Errors,
       complete = bid.Helpers.complete,
       dom = bid.DOM,
       REPEAT_COUNT_INDEX = 3,
@@ -40,6 +41,20 @@ BrowserID.Modules.InteractionData = (function() {
     } else {
       return 'xhr.malformed_report';
     }
+  }
+
+  function parseErrorScreen(msg, data) {
+    var parts = [];
+
+    if (data.action) {
+      parts.push(_.keyOf(errors, data.action));
+    }
+
+    if (data.network && data.network.status > 399) {
+      parts.push(data.network.status);
+    }
+
+    return 'screen.error.' + parts.join('.');
   }
 
   /**
@@ -102,7 +117,8 @@ BrowserID.Modules.InteractionData = (function() {
     password_submit: "authenticate.password_submitted",
     authentication_success: "authenticate.password_success",
     authentication_fail: "authenticate.password_fail",
-    xhr_complete: removeGetData
+    xhr_complete: removeGetData,
+    error_screen: parseErrorScreen
   };
 
   function getKPIName(msg, data) {
@@ -284,7 +300,7 @@ BrowserID.Modules.InteractionData = (function() {
 
     // Base the offset of any event already on the event stream off of the new
     // startTime.
-    if (eventStream.length) {
+    if (eventStream && eventStream.length) {
       var delta = self.startTime - newStartTime;
 
       for (var i=0, event; event=eventStream[i]; ++i) {
@@ -316,8 +332,10 @@ BrowserID.Modules.InteractionData = (function() {
     if (data.duration) eventData.push(data.duration);
 
     var eventStream = self.getCurrentEventStream();
-    eventStream.push(eventData);
-    setCurrentEventStream.call(self, eventStream);
+    if (eventStream) {
+      eventStream.push(eventData);
+      setCurrentEventStream.call(self, eventStream);
+    }
 
     return eventData;
   }
@@ -329,7 +347,7 @@ BrowserID.Modules.InteractionData = (function() {
 
     // Check if event is the same as the last event. If it is, update the
     // number of times the last event was called. If not, continue as always.
-    if (/^xhr_complete/.test(eventName) && eventStream.length) {
+    if (/^xhr_complete/.test(eventName) && eventStream && eventStream.length) {
       var lastEvent = eventStream[eventStream.length - 1];
       if (lastEvent[0] === eventName) {
         // same xhr event as the last one. Update the count.

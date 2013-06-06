@@ -284,14 +284,21 @@
     equal(actions.info.doAuthenticate.email, TEST_EMAIL, "authenticate called with the correct email");
   });
 
-  test("start - RPInfo always started", function() {
-    mediator.publish("start", {
-      termsOfService: "https://browserid.org/TOS.html",
-      privacyPolicy: "https://browserid.org/priv.html"
-    });
+  test("start - RPInfo always started, issuer set, inline_tosspp not started", function() {
+    try {
+      mediator.publish("start", {
+        termsOfService: "https://browserid.org/TOS.html",
+        privacyPolicy: "https://browserid.org/priv.html",
+        forceIssuer: "fxos_issuer"
+      });
+    } catch(e) {
+      ok(false, "exception not expected");
+    }
 
     ok(actions.info.doRPInfo.termsOfService, "doRPInfo called with termsOfService set");
     ok(actions.info.doRPInfo.privacyPolicy, "doRPInfo called with privacyPolicy set");
+
+    equal(user.getIssuer(), "fxos_issuer");
   });
 
   asyncTest("primary_user with already provisioned primary user - redirect to primary_user_ready", function() {
@@ -489,7 +496,6 @@
       equal(info.email, TEST_EMAIL, "correctly redirected to email_valid_and_ready with correct email");
       start();
     });
-
     mediator.publish("email_chosen", {
       email: TEST_EMAIL
     });
@@ -567,16 +573,22 @@
   });
 
   test("null assertion generated - preserve original options in doPickEmail", function() {
+    var hostname = "http://example.com",
+        pp = "http://example.com/priv.html",
+        tos = "http://example.com/tos.html";
+
     mediator.publish("start", {
-      hostname: "http://example.com",
-      privacyPolicy: "http://example.com/priv.html",
-      termsOfService: "http://example.com/tos.html"
+      hostname: hostname,
+      privacyPolicy: pp,
+      termsOfService: tos
     });
     mediator.publish("assertion_generated", { assertion: null });
 
-    equal(actions.called.doPickEmail, true, "doPickEmail callled");
-    equal(actions.info.doPickEmail.origin, "http://example.com", "hostname preserved");
-    equal(actions.info.doPickEmail.siteTOSPP, true, "siteTOSPP preserved");
+    testActionStarted("doPickEmail", {
+      origin: hostname,
+      termsOfService: tos,
+      privacyPolicy: pp
+    });
   });
 
   test("add_email - call doAddEmail", function() {
@@ -636,6 +648,95 @@
 
   asyncTest("authenticate_specified_email without cancelable - call doAuthenticateWithRequiredEmail, cancelable defaults to true", function() {
     testAuthenticateSpecifiedEmail(undefined, true);
+  });
+
+  test("pick_email passes along TOS/PP options if no email " +
+      "is selected for domain", function() {
+    var tos = "https://browserid.org/TOS.html";
+    var pp = "https://browserid.org/priv.html";
+
+    mediator.publish("start", {
+      termsOfService: tos,
+      privacyPolicy: pp
+    });
+
+    mediator.publish("pick_email");
+
+    testActionStarted("doPickEmail", {
+      termsOfService: tos,
+      privacyPolicy: pp
+    });
+  });
+
+  test("pick_email does not pass along TOS/PP options if email " +
+      "is selected for domain", function() {
+    var tos = "https://browserid.org/TOS.html";
+    var pp = "https://browserid.org/priv.html";
+
+    mediator.publish("start", {
+      termsOfService: tos,
+      privacyPolicy: pp
+    });
+
+    user.setOrigin("browserid.org");
+    storage.addEmail("testuser@testuser.com");
+    user.setOriginEmail("testuser@testuser.com");
+
+    mediator.publish("pick_email");
+
+    testActionStarted("doPickEmail", {
+      termsOfService: false,
+      privacyPolicy: false
+    });
+  });
+
+
+  asyncTest("new_user KPI for new users", function() {
+    mediator.subscribe("kpi_data", function(msg, info) {
+      equal(info.new_account, true);
+      start();
+    });
+
+    // Sequence:
+    // 1. user types in unrecognized email address, is shown set password screen
+    // 2. user enters password
+    //
+    // Expect:
+    // kpi_data message with new_account: true
+    mediator.publish("new_user", { email: TEST_EMAIL });
+  });
+
+  asyncTest("new_user KPI for new FirefoxOS users", function() {
+    mediator.subscribe("kpi_data", function(msg, info) {
+      equal(info.new_account, true);
+      start();
+    });
+
+    // Sequence:
+    // 1. user types in unrecognized email address, is shown set password screen
+    // 2. user enters password
+    //
+    // Expect:
+    // kpi_data message with new_account: true
+    mediator.publish("new_fxaccount", { email: TEST_EMAIL });
+  });
+
+  asyncTest("new_user KPI set to `false` when user hits 'cancel' " +
+      "from set_password screen", function() {
+    // Sequence:
+    // 1. user types in unrecognized email address, is shown set password screen
+    // 2. user clicks "cancel" button
+    //
+    // Expect:
+    // kpi_data message with new_account: false
+    mediator.publish("new_user", { email: TEST_EMAIL });
+
+    mediator.subscribe("kpi_data", function(msg, info) {
+      equal(info.new_account, false);
+      start();
+    });
+
+    mediator.publish("cancel_state");
   });
 
 }());

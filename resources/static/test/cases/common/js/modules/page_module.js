@@ -20,6 +20,8 @@
       ERROR_SHOWN_SELECTOR = "body.error",
       WAIT_CONTENTS_SELECTOR = "#wait .contents",
       WAIT_SHOWN_SELECTOR = "body.waiting",
+      LOAD_CONTENTS_SELECTOR = "#load .contents",
+      LOAD_SHOWN_SELECTOR = "body.loading",
       BODY_SELECTOR = "body",
       FIRST_INPUT_SELECTOR = "input:visible:eq(0)",
       mediator = bid.Mediator;
@@ -80,6 +82,16 @@
     testRenderMessagingScreen("renderError", ERROR_CONTENTS_SELECTOR);
   });
 
+  test("renderError publishes an error_screen event", function() {
+    createController();
+    mediator.subscribe("error_screen", function(msg, data) {
+      equal(msg, 'error_screen', 'error_screen event triggered');
+      equal(data.foo, 'bar', 'passed error object');
+    });
+
+    controller.renderError("error", { foo: 'bar' });
+  });
+
   test("renderDelay renders a delay screen", function() {
     testRenderMessagingScreen("renderDelay", DELAY_CONTENTS_SELECTOR);
   });
@@ -88,10 +100,14 @@
     testRenderMessagingScreen("renderWait", WAIT_CONTENTS_SELECTOR);
   });
 
+  test("renderLoad renders a load screen", function() {
+    testRenderMessagingScreen("renderLoad", LOAD_CONTENTS_SELECTOR);
+  });
+
   test("hideWarningScreens hides the wait, error and delay screens", function() {
     createController();
 
-    _.each(["renderWait", "renderError", "renderDelay"], function(renderer) {
+    _.each(["renderWait", "renderError", "renderDelay", "renderLoad"], function(renderer) {
       controller[renderer]("wait", {
         title: renderer + " screen title",
         message: renderer + " screen message"
@@ -99,7 +115,7 @@
     });
 
     controller.hideWarningScreens();
-    _.each([WAIT_SHOWN_SELECTOR, DELAY_SHOWN_SELECTOR, ERROR_SHOWN_SELECTOR], function(selector) {
+    _.each([WAIT_SHOWN_SELECTOR, DELAY_SHOWN_SELECTOR, ERROR_SHOWN_SELECTOR, LOAD_SHOWN_SELECTOR], function(selector) {
       testElementDoesNotExist(selector);
     });
   });
@@ -153,6 +169,12 @@
     $(BODY_SELECTOR).removeClass("submit_disabled");
     controller.onSubmit();
     equal(submitCalled, true, "submit permitted to complete");
+  });
+
+  asyncTest("cancelDialog publishes cancel message", function() {
+    createController();
+    testHelpers.expectedMessage("cancel");
+    controller.cancelDialog(start);
   });
 
 }());

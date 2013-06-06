@@ -113,11 +113,31 @@ BrowserID.State = (function() {
     }
 
 
+    /**
+     * The entry point to the state machine. Users who are returning from
+     * authenticating with their primary will have info.email and info.type set
+     * to primary.
+     */
     handleState("start", function(msg, info) {
       self.hostname = info.hostname;
       self.siteName = info.siteName || info.hostname;
+      self.privacyPolicy = info.privacyPolicy;
+      self.termsOfService = info.termsOfService;
       self.siteTOSPP = !!(info.privacyPolicy && info.termsOfService);
 
+      if (info.forceIssuer) {
+        user.setIssuer(info.forceIssuer);
+      }
+
+      self.allowUnverified = info.allowUnverified;
+      user.setAllowUnverified(info.allowUnverified);
+
+      /**
+       * Only show the favicon on mobile devices if we are not signing in to
+       * FirefoxOS marketplace. Checking isDefaultIssuer is an ugly hack,
+       * but we use it in several places.
+       */
+      info.mobileFavicon = user.isDefaultIssuer();
       startAction(false, "doRPInfo", info);
 
       if (info.email && info.type === "primary") {
@@ -131,7 +151,7 @@ BrowserID.State = (function() {
         redirectToState("primary_user", info);
       }
       else {
-        startAction("doCheckAuth");
+        startAction("doCheckAuth", info);
       }
     });
 
@@ -153,7 +173,6 @@ BrowserID.State = (function() {
 
     handleState("authentication_checked", function(msg, info) {
       var authenticated = info.authenticated;
-
       if (authenticated) {
         redirectToState("pick_email");
       } else {
@@ -165,7 +184,8 @@ BrowserID.State = (function() {
     handleState("authenticate", function(msg, info) {
       _.extend(info, {
         siteName: self.siteName,
-        siteTOSPP: self.siteTOSPP
+        siteTOSPP: self.siteTOSPP,
+        allowUnverified: self.allowUnverified
       });
 
       startAction("doAuthenticate", info);
@@ -205,20 +225,35 @@ BrowserID.State = (function() {
       complete(info.complete);
     });
 
+    // B2G forceIssuer on primary
+    handleState("new_fxaccount", function(msg, info) {
+      self.newFxAccountEmail = info.email;
+
+      // Add new_account to the KPIs *before* the staging occurs allows us to
+      // know when we are losing users due to the email verification.
+      mediator.publish("kpi_data", { new_account: true });
+
+      info.fxaccount = true;
+      startAction(false, "doSetPassword", info);
+      complete(info.complete);
+    });
+
     handleState("password_set", function(msg, info) {
-      /* A password can be set for one of three reasons -
+      /* A password can be set for several reasons
        * 1) This is a new user
        * 2) A user is adding the first secondary address to an account that
-       *    consists only of primary addresses
-       * 3) A primary address was downgraded to a secondary and the user
+       * consists only of primary addresses
+       * 3) an existing user has forgotten their password and wants to reset it.
+       * 4) A primary address was downgraded to a secondary and the user
        *    has no password in the DB.
-       *
-       * #1 is taken care of by newUserEmail, #2 by addEmailEmail,
-       * and #3 by transitionNoPassword
+       * 5) RP is using forceIssuer and we have a primary email address with
+       * no password for the user
+       * #1 is taken care of by newUserEmail, #2 by addEmailEmail, #3 by resetPasswordEmail,
+       * #4 by transitionNoPassword and #5 by fxAccountEmail
        */
       info = _.extend({ email: self.newUserEmail || self.addEmailEmail ||
-                        self.transitionNoPassword }, info);
-
+                               self.resetPasswordEmail || self.transitionNoPassword ||
+                               self.newFxAccountEmail}, info);
       if(self.newUserEmail) {
         startAction(false, "doStageUser", info);
       }
@@ -228,9 +263,19 @@ BrowserID.State = (function() {
       else if (self.transitionNoPassword) {
         redirectToState("stage_transition_to_secondary", info);
       }
+      else if(self.newFxAccountEmail) {
+        startAction(false, "doStageUser", info);
+// TODO         startAction(false, "doStageResetPassword", info); ???
+      }
     });
 
     handleState("user_staged", handleEmailStaged.curry("doConfirmUser"));
+
+    // Once an unverified user is created, skip the confirmation step and
+    // sign them in directly.
+    handleState("unverified_created", function(msg, info) {
+      startAction(false, "doAuthenticateWithUnverifiedEmail", info);
+    });
 
     handleState("user_confirmed", handleEmailConfirmed);
 
@@ -241,13 +286,6 @@ BrowserID.State = (function() {
     handleState("transition_to_secondary_staged", handleEmailStaged.curry("doConfirmTransitionToSecondary"));
 
     handleState("transition_to_secondary_confirmed", handleEmailConfirmed);
-
-    handleState("upgraded_primary_user", function (msg, info) {
-      user.usedAddressAsPrimary(info.email, function () {
-        info.state = 'known';
-        redirectToState("email_chosen", info);
-      }, info.complete);
-    });
 
     handleState("primary_user", function(msg, info) {
       self.addPrimaryUser = !!info.add;
@@ -335,15 +373,19 @@ BrowserID.State = (function() {
     });
 
     handleState("pick_email", function() {
+      var originEmail = user.getOriginEmail();
       startAction("doPickEmail", {
         origin: self.hostname,
-        siteTOSPP: self.siteTOSPP && !user.getOriginEmail()
+        privacyPolicy: !originEmail && self.privacyPolicy,
+        termsOfService: !originEmail && self.termsOfService,
+        siteName: self.siteName,
+        hostname: self.hostname
       });
     });
 
     handleState("email_chosen", function(msg, info) {
       var email = info.email,
-          record = storage.getEmail(email);
+          record = user.getStoredEmailKeypair(email);
 
       self.email = email;
 
@@ -357,7 +399,7 @@ BrowserID.State = (function() {
 
       mediator.publish("kpi_data", { email_type: info.type });
 
-      if (info.state && 'offline' === info.state) {
+      if ('offline' === info.state) {
         redirectToState("primary_offline", info);
       }
       else if (info.type === "primary") {
@@ -369,7 +411,10 @@ BrowserID.State = (function() {
           // point.
           redirectToState("email_valid_and_ready", info);
         } else if ("transition_to_primary" === info.state) {
-          startAction("doUpgradeToPrimaryUser", info);
+          // the user's account is being upgraded, we know they do not have
+          // a cert. They may be able to provision with their IdP, but we want
+          // them to see a nice message. Make them verify with their primary.
+          startAction("doVerifyPrimaryUser", info);
           complete(info.complete);
         }
         else {
@@ -380,6 +425,23 @@ BrowserID.State = (function() {
           redirectToState("primary_user", info);
         }
       }
+      else if (!user.isDefaultIssuer() && !record.cert) {
+        // TODO: Duplicates some of the logic in the authentication action module.
+        user.resetCaches();
+        user.addressInfo(info.email, function (serverInfo) {
+          // We'll end up in this state again, but we want to see serverInfo.state change
+          if (serverInfo.state === "transition_no_password") {
+            var newInfo = _.extend(info, { fxaccount: true });
+            self.newFxAccountEmail = info.email;
+            startAction(false, "doSetPassword", info);
+          } else {
+            redirectToState("email_valid_and_ready", info);
+            oncomplete();
+          }
+        }, function () {
+          throw new Error('Unable to check with address info from email_chosen');
+        });
+      }
       // Anything below this point means the address is a secondary.
       else if ("transition_to_secondary" === info.state) {
         startAction("doAuthenticate", info);
@@ -387,12 +449,18 @@ BrowserID.State = (function() {
       else if ("transition_no_password" === info.state) {
         redirectToState("transition_no_password", info);
       }
-      else if (info.state === 'unverified') {
+      else if (info.state === 'unverified' && !self.allowUnverified) {
         // user selected an unverified secondary email, kick them over to the
         // verify screen.
         redirectToState("stage_reverify_email", info);
       }
       else {
+        // make sure an unverified-certs are removed
+        if (record.unverified && info.state !== 'unverified') {
+          storage.invalidateEmail(email, user.getIssuer());
+        }
+
+
         // Address is verified, check the authentication, if the user is not
         // authenticated to the assertion level, force them to enter their
         // password.
@@ -477,7 +545,7 @@ BrowserID.State = (function() {
     handleState("assertion_generated", function(msg, info) {
       self.success = true;
       if (info.assertion !== null) {
-        storage.setLoggedIn(user.getOrigin(), self.email);
+        storage.site.set(user.getOrigin(), "logged_in", self.email);
 
         startAction("doAssertionGenerated", { assertion: info.assertion, email: self.email });
       }
@@ -529,6 +597,12 @@ BrowserID.State = (function() {
     handleState("email_confirmed", handleEmailConfirmed);
 
     handleState("cancel_state", function(msg, info) {
+      if (self.newUserEmail || self.newFxAccountEmail) {
+        // If the user cancels from the set_password screen, they should not be
+        // counted as new users.
+        mediator.publish("kpi_data", { new_account: false });
+      }
+
       cancelState(info);
     });
 

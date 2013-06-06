@@ -121,6 +121,7 @@ input[type=password] {
     width: 100%;
     color: #383838;
     font-size: 13px;
+    margin-top: 6px;
     padding: 5px;
     border-width: 1px;
     border-style: solid;
@@ -302,7 +303,11 @@ button::-moz-focus-inner, .button::-moz-focus-inner {
 /* Override all previously applied styles so that the button does not change
  * styles even if the user hovers, focuses or clicks on the button.
 */
-button[disabled], .submit_disabled button, .submit_disabled .button,
+button[disabled],
+button[disabled]:hover, .button[disabled]:hover,
+button[disabled]:focus, .button[disabled]:focus,
+button[disabled]:active, .button[disabled]:active,
+.submit_disabled button, .submit_disabled .button,
 .submit_disabled button:hover, .submit_disabled .button:hover,
 .submit_disabled button:focus, .submit_disabled .button:focus,
 .submit_disabled button:active, .submit_disabled .button:active {
@@ -319,7 +324,7 @@ button[disabled], .submit_disabled button, .submit_disabled .button,
   text-shadow: 0 1px #444, 0 0 2px #555;
   -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
   opacity: .5;
-  border-bottom: 1px solid #777;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .submit_disabled .submit button, .submit_disabled .submit .button,
@@ -334,7 +339,6 @@ button[disabled], .submit_disabled button, .submit_disabled .button,
     background-image: url("/common/i/button-loader.gif#iefix"),       -o-linear-gradient(top, #4eb5e5, #3196cf);
     background-image: url("/common/i/button-loader.gif#iefix"),          linear-gradient(top, #4eb5e5, #3196cf);
     background-position: 95% center;
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(0, 0, 0, 0.2);
 }
 
 button.negative {
@@ -392,12 +396,17 @@ button.negative:active,
   margin-top: 8px;
 }
 
+
 a.secondary[disabled], .submit_disabled a.secondary, .submit_disabled a.secondary:focus, .submit_disabled a.secondary:active {
   color: #999;
 }
 
 .right {
   float: right;
+}
+
+.left {
+  float: left;
 }
 
 .center {
@@ -471,7 +480,7 @@ footer .help {
   font-weight: bold;
 }
 
-#wait, #delay, #error {
+.message_screen {
   background-color: #dadee1;
   background-image: url("/common/i/grain.png#iefix"), -webkit-gradient(linear, left top, left bottom, from(#dadee1), to(#c7ccd0));
   background-image: url("/common/i/grain.png#iefix"), -webkit-linear-gradient(top, #dadee1, #c7ccd0);
@@ -481,21 +490,21 @@ footer .help {
   background-image: url("/common/i/grain.png#iefix"),         linear-gradient(top, #dadee1, #c7ccd0);
 }
 
-#wait .contents, #error .contents, #delay .contents {
+.message_screen .contents {
     max-width: 430px;
     margin: 0 auto;
 }
 
-#wait h2, #delay h2 {
+.message_screen h2 {
     font-size: 20px;
+}
+
+.message_screen p {
+    margin-top: 20px;
 }
 
 #error h2 {
     font-size: 22px;
-}
-
-#wait p, #error p, #delay p {
-    margin-top: 20px;
 }
 
 #error .emphasis {
@@ -518,13 +527,47 @@ footer .help {
     color: #999;
 }
 
-.forgot {
-  font-size: 11px;
+/**
+ * These animations are used for the loading spinner. No animated gifs here.
+ */
+
+@-webkit-keyframes spin {
+    from {
+        -webkit-transform: rotate(0deg);
+    }
+    to {
+        -webkit-transform: rotate(365deg);
+    }
+}
+@-moz-keyframes spin {
+    from {
+        -moz-transform: rotate(0deg);
+    }
+    to {
+        -moz-transform: rotate(365deg);
+    }
+}
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(365deg);
+    }
 }
 
-.forgot:hover {
-  color: #333;
+
+.loadingSpinner {
+    background-image: url('data:image/png;base64,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');
+    display: block;
+    margin: 0 auto 25px;
+    width: 50px;
+    height: 50px;
+    -webkit-animation: 0.9s spin infinite linear;
+    -moz-animation: 0.9s spin infinite linear;
+    animation: 0.9s spin infinite linear;
 }
+
 
 .submit {
     margin-top: 10px;
@@ -541,11 +584,16 @@ footer .help {
 
 #showDevelopment {
   position: absolute;
-  top: 0;
+  /**
+   * The TOS/PP agreement close button is in the upper right corner. To avoid
+   * interfering with it, push the development button down a bit.
+   */
+  top: 50px;
   right: 0;
   width: 50px;
   height: 50px;
   cursor: default;
+  z-index: 99999;
 }
 
 #development {
@@ -571,4 +619,8 @@ footer .help {
 
 #development li a {
   color: #fff;
+}
+
+#development input[type=text] {
+  padding: 3px 5px;
 }

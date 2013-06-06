@@ -24,10 +24,12 @@ BrowserID.Modules.Development = (function() {
         this.click("#showError", showError);
         this.click("#showDelay", showDelay);
         this.click("#showWait", showWait);
+        this.click("#showLoad", showLoad);
         this.click("#hideAll,footer,#errorBackground", hideScreens);
         this.click("#clearLocalStorage", clearLocalStorage);
         this.click("#clearEmailsForSites", clearEmailsForSites);
         this.click("#forceIsThisYourComputer", forceIsThisYourComputer);
+        this.click("#redirectTo", redirectTo);
         this.click("#closeDevelopment", close);
       }
 
@@ -51,7 +53,7 @@ BrowserID.Modules.Development = (function() {
 
   function showDelay() {
     /*jshint validthis:true*/
-    this.renderDelay("wait", {
+    this.renderDelay("load", {
       title: "Delay Screen",
       message: "Delay Message"
     });
@@ -65,11 +67,20 @@ BrowserID.Modules.Development = (function() {
     });
   }
 
+  function showLoad() {
+    /*jshint validthis:true*/
+    this.renderLoad("load", {
+      title: "Load Screen",
+      message: "Load Message"
+    });
+  }
+
   function hideScreens() {
     /*jshint validthis:true*/
     this.hideError();
     this.hideDelay();
     this.hideWait();
+    this.hideLoad();
   }
 
   function clearLocalStorage() {
@@ -84,6 +95,15 @@ BrowserID.Modules.Development = (function() {
 
   function forceIsThisYourComputer() {
     storage.usersComputer.forceAsk(user.userid());
+  }
+
+  function redirectTo() {
+    var href = dom.getInner("#siteToRedirectTo");
+
+    if (href) {
+      bid.module.stopAll();
+      document.location = href;
+    }
   }
 
   function close() {

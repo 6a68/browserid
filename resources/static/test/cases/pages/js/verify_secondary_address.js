@@ -66,6 +66,7 @@
   }
 
   function testCannotConfirm() {
+    ok($("body").is(":visible"));
     testHelpers.testErrorVisible();
   }
 
@@ -85,11 +86,10 @@
     storage.setReturnTo(returnTo);
 
     createController(config, function() {
-      testVisible("#congrats");
       testHasClass("body", "complete");
       testElementTextEquals(".website", returnTo, "origin is set to redirect to login.persona.org");
       testDocumentRedirected(doc, returnTo, "redirection occurred to correct URL");
-      equal(storage.getLoggedIn("https://test.domain"), "testuser@testuser.com", "logged in status set");
+      equal(storage.site.get("https://test.domain", "logged_in"), "testuser@testuser.com", "logged in status set");
       start();
     });
   });
@@ -109,8 +109,10 @@
   asyncTest("invalid token - show cannot confirm error", function() {
     xhr.useResult("invalid");
 
+    $("body").hide();
     createController(config, function() {
       testCannotConfirm();
+      $("body").show();
       start();
     });
   });

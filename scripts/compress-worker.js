@@ -9,10 +9,11 @@ uglifycss = require('uglifycss'),
 mkdirp = require('mkdirp'),
 connect_fonts = require('connect-fonts'),
 connect_fonts_opensans = require('connect-fonts-opensans'),
+connect_fonts_feurasans = require('connect-fonts-feurasans'),
 path = require('path');
 
 var font_middleware = connect_fonts.setup({
-  fonts: [ connect_fonts_opensans ],
+  fonts: [ connect_fonts_opensans, connect_fonts_feurasans ],
   "allow-origin": config.get('public_url')
 });
 
@@ -61,6 +62,10 @@ function compressResource(staticPath, name, files, cb) {
         var copyright = extract_copyright(orig_code) || "";
         if (copyright.length) copyright += "\n\n";
 
+        // replace any embedded URLs with their cachified version. bidbundle
+        // for instance.
+        orig_code = cachify_embedded_js(orig_code);
+
         // compress javascript
         var ast = jsp.parse(orig_code); // parse code and get the initial AST
         ast = pro.ast_mangle(ast); // get a new AST with mangled names
@@ -68,7 +73,7 @@ function compressResource(staticPath, name, files, cb) {
         final_code = copyright + pro.split_lines(pro.gen_code(ast), 32 * 1024); // compressed code here
       } else if (/\.css$/.test(name)) {
         // compress css
-        var cach_code = cachify_embedded(orig_code);
+        var cach_code = cachify_embedded_css(orig_code);
         final_code = uglifycss.processString(cach_code);
       } else {
         return cb("can't determine content type: " + name);
@@ -116,7 +121,7 @@ function compressResource(staticPath, name, files, cb) {
   isBuildNeeded();
 }
 
-function cachify_embedded (css_src) {
+function cachify_embedded_css (css_src) {
   // RegExp is set up to handle multiple url's per declaration, which is
   // possible for things like background-images.
   return css_src.replace(/url\s*\(['"]([^\)'"]+)\s*['"]\s*\)/g, function (str, url) {
@@ -131,6 +136,15 @@ function cachify_embedded (css_src) {
      }
 
      return "url('" + newurl + "')";
+  });
+}
+
+function cachify_embedded_js(js_src) {
+  // RegExp is set up to handle multiple url's per declaration, which is
+  // possible for things like background-images.
+  return js_src.replace(/addScript\s*\(['"]([^\)'"]+)\s*['"]\s*\)/g, function (str, url) {
+     var newurl = cachify.cachify(url);
+     return "addScript('" + newurl + "')";
   });
 }
 
