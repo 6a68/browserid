@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 BrowserID.getStorage = function() {
-  var storage;
+  var support = BrowserID.BrowserSupport,
+    storage;
 
-  try {
+  // checkLocalStorage returns a truthy string if it fails
+  if (!support.checkLocalStorage()) {
     storage = localStorage;
-  }
-  catch(e) {
+  } else {
     // Fx with cookies disabled will except while trying to access
     // localStorage.  IE6/IE7 will just plain blow up because they have no
     // notion of localStorage.  Because of this, and because the new API
