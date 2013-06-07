@@ -6,8 +6,7 @@ BrowserID.getStorage = function() {
   var support = BrowserID.BrowserSupport,
     storage;
 
-  // checkLocalStorage returns a truthy string if it fails
-  if (!support.checkLocalStorage()) {
+  if (support.hasLocalStorage()) {
     storage = localStorage;
   } else {
     // Fx with cookies disabled will except while trying to access

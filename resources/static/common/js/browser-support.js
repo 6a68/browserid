@@ -60,6 +60,10 @@ BrowserID.BrowserSupport = (function() {
     if (fail) return 'LOCALSTORAGE';
   }
 
+  function hasLocalStorage() {
+    return !checkLocalStorage();
+  }
+
   function isSupported() {
     reason = checkLocalStorage() || checkPostMessage() || explicitNosupport();
 
@@ -102,7 +106,13 @@ BrowserID.BrowserSupport = (function() {
      * Check to see whether user is using iOS
      * @method isIOS
      */
-    isIOS: isIOS
+    isIOS: isIOS,
+    /**
+     * Check if localStorage is accessible.
+     * @method hasLocalStorage
+     * @returns {boolean}
+     */
+    hasLocalStorage: hasLocalStorage
   };
 
 }());
