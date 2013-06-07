@@ -34,37 +34,6 @@
       return checkIE();
     }
 
-    function checkLocalStorage() {
-      // Firefox/Fennec/Chrome blow up when trying to access or
-      // write to localStorage. We must do two explicit checks, first
-      // whether the browser has localStorage.  Second, we must check
-      // whether the localStorage can be written to.  Firefox (at v11)
-      // throws an exception when querying win['localStorage']
-      // when cookies are disabled. Chrome (v17) excepts when trying to
-      // write to localStorage when cookies are disabled. If an
-      // exception is thrown, then localStorage is disabled. If no
-      // exception is thrown, hasLocalStorage will be true if the
-      // browser supports localStorage and it can be written to.
-      try {
-        var hasLocalStorage = 'localStorage' in win
-                        // Firefox will except here if cookies are disabled.
-                        && win['localStorage'] !== null;
-
-        if(hasLocalStorage) {
-          // browser has localStorage, check if it can be written to. If
-          // cookies are disabled, some browsers (Chrome) will except here.
-          win['localStorage'].setItem("test", "true");
-          win['localStorage'].removeItem("test");
-        }
-        else {
-          // Browser does not have local storage.
-          return "LOCALSTORAGE_NOT_SUPPORTED";
-        }
-      } catch(e) {
-          return "LOCALSTORAGE_DISABLED";
-      }
-    }
-
     function checkPostMessage() {
       if(!win.postMessage) {
         return "POSTMESSAGE_NOT_SUPPORTED";
@@ -78,7 +47,7 @@
     }
 
     function isSupported() {
-      reason = explicitNosupport() || checkLocalStorage() || checkPostMessage() || checkJSON();
+      reason = explicitNosupport() || checkPostMessage() || checkJSON();
 
       return !reason;
     }
