@@ -38,17 +38,26 @@ BrowserID.BrowserSupport = (function() {
     return checkIE();
   }
 
-  function checkLocalStorage() {
-    var localStorage = 'localStorage' in win && win.localStorage !== null;
-    if(!localStorage) {
-      return "LOCALSTORAGE";
-    }
-  }
-
   function checkPostMessage() {
     if(!win.postMessage) {
       return "POSTMESSAGE";
     }
+  }
+
+  function checkLocalStorage() {
+    // try to set-and-check a timestamp.
+    // if this operation fails for any reason, the fail var will be falsy.
+    // see http://mathiasbynens.be/notes/localstorage-pattern for details.
+    var storage, result, fail, uid;
+    try {
+      uid = new Date();
+      storage = window.localStorage;
+      storage.setItem(uid, uid);
+      result = storage.getItem(uid);
+      fail = (result !== uid);
+      storage.removeItem(uid);
+    } catch(e) {}
+    if (fail) return 'LOCALSTORAGE';
   }
 
   function isSupported() {
