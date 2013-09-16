@@ -42,6 +42,7 @@
     "mysql": "0.9.5",
     "nodemailer": "0.3.21",
     "mkdirp": "0.3.0",
+    "node-cassandra-cql": "~0.2.2-1",
     "optimist": "0.2.8",
     "postprocess": "0.2.4",
     "rimraf": "2.0.2",
@@ -57,9 +58,7 @@
     "winston": "0.7.2",
     "connect-fonts": "0.0.9-alpha8",
     "connect-fonts-opensans": "0.0.3-beta1",
-    "connect-fonts-feurasans": "0.0.2",
-    "helenus": "~0.6.2",
-    "node-cassandra-cql": "~0.2.2-1"
+    "connect-fonts-feurasans": "0.0.2"
   },
   "optionalDependencies": {
     "node-statsd": "https://github.com/downloads/lloyd/node-statsd/0509f85.tgz"
@@ -80,6 +79,6 @@
     "start": "node ./scripts/run_locally.js"
   },
   "engines": {
-    "node": ">= 0.8.11"
+    "node": ">= 0.10.0"
   }
 }
