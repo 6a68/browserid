@@ -41,6 +41,7 @@
     "jwcrypto": "0.4.3",
     "mysql": "0.9.5",
     "nodemailer": "0.3.21",
+    "node-uuid": "1.4.0",
     "mkdirp": "0.3.0",
     "node-cassandra-cql": "~0.2.2-1",
     "optimist": "0.2.8",
